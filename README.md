@@ -332,8 +332,8 @@ apps/web/src/server/agent/
 | `AIHUBMIX_TTS_MODEL` | `edge` | TTS model (`edge` for free) |
 | `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Edge TTS voice |
 | `WAVESPEED_API_KEY` | — | WaveSpeed API key |
-| `WAVESPEED_TTS_MODEL` | `minimax/speech-02-turbo` | WaveSpeed TTS model |
-| `WAVESPEED_MUSIC_MODEL` | `wavespeed-ai/ace-step-1.5` | WaveSpeed BGM model |
+| `WAVESPEED_TTS_MODEL` | `edge` | WaveSpeed TTS model (`edge` for free) |
+| `WAVESPEED_MUSIC_MODEL` | `local` | WaveSpeed BGM model (`local` for database tracks) |
 
 ### LLM
 

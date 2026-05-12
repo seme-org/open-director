@@ -334,8 +334,8 @@ apps/web/src/server/agent/
 | `AIHUBMIX_TTS_MODEL` | `edge` | TTS 模型（`edge` 为免费） |
 | `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Edge TTS 语音 |
 | `WAVESPEED_API_KEY` | — | WaveSpeed API 密钥 |
-| `WAVESPEED_TTS_MODEL` | `minimax/speech-02-turbo` | WaveSpeed TTS 模型 |
-| `WAVESPEED_MUSIC_MODEL` | `wavespeed-ai/ace-step-1.5` | WaveSpeed BGM 模型 |
+| `WAVESPEED_TTS_MODEL` | `edge` | WaveSpeed TTS 模型（`edge` 为免费） |
+| `WAVESPEED_MUSIC_MODEL` | `local` | WaveSpeed BGM 模型（`local` 为数据库本地曲目） |
 
 ### LLM
 
