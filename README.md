@@ -61,7 +61,7 @@ Each agent is a LangGraph node that streams its output in real-time — you can 
 ### Creative Mode (AI Director Full Workflow)
 
 - Input one sentence, AI director auto-generates complete plan: brief, story, storyboard, voiceover, images, BGM
-- Multiple **art styles**: Cyberpunk, Ghibli, Pixel Art, Photoreal, 3D, and custom styles
+- **34 built-in art styles** across 8 categories: Cinematic, Commercial, Futuristic, Retro, Anime, 3D, Illustration, Realistic, Experimental
 - **AI-generated story scripts**, editable manually
 - **AI voiceover** with multiple voice options, real-time preview
 - **AI background music**, auto-generated based on story atmosphere
@@ -140,17 +140,17 @@ AIHUBMIX_IMAGE_EDIT_MODEL="gemini-3.1-flash-image-preview-free"
 AIHUBMIX_TTS_MODEL="edge"
 EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
 
-# BGM (uses local MP3 files from assets/bgm/default/)
+# BGM (uses pre-uploaded tracks from database, randomly selected)
 ```
 
 **Free model options:**
 | Capability | Free Model | Notes |
 |-----------|-----------|-------|
-| Image generation | `gemini-3.1-flash-image-preview-free` | Nano Banana 2, requires recharge for >10 calls |
-| Image generation | `gpt-image-2-free` | OpenAI's latest, requires recharge for >10 calls |
+| Image generation | `gemini-3.1-flash-image-preview-free` | Gemini image generation, has free tier |
+| Image editing | `gemini-3.1-flash-image-preview-free` | Same model, for character/scene editing |
 | TTS | `edge` | Microsoft Edge TTS, completely free |
-| BGM | Local MP3 | Uses files from `assets/bgm/default/` |
-| LLM | `gpt-4.1-mini-free` | For recipe/script generation |
+| BGM | Local tracks | Randomly selected from pre-uploaded database tracks |
+| LLM | `gpt-4.1-free` | For recipe/script generation |
 
 ### WaveSpeed
 
@@ -162,7 +162,7 @@ WAVESPEED_API_KEY="your-wavespeed-key"
 
 # Optional: free alternatives
 WAVESPEED_TTS_MODEL="edge"           # Free Edge TTS
-WAVESPEED_MUSIC_MODEL="local"        # Free local MP3 files
+WAVESPEED_MUSIC_MODEL="local"        # Free local tracks from database
 ```
 
 ### Provider comparison
@@ -172,7 +172,7 @@ WAVESPEED_MUSIC_MODEL="local"        # Free local MP3 files
 | Free tier | Yes (limited calls) | No |
 | Image models | Multiple (Gemini, GPT, etc.) | Nano Banana, Seedream |
 | TTS | Edge TTS (free) or paid models | MiniMax or Edge TTS |
-| BGM | Local MP3 | AI-generated or local MP3 |
+| BGM | Local tracks (database) | AI-generated or local tracks |
 | Setup | Register at aihubmix.com | Register at wavespeed.ai |
 
 ---
@@ -239,12 +239,12 @@ This starts the Next.js dev server on http://localhost:3000.
 ```
 open-director/
 ├── apps/
-│   ├── web/          # Next.js frontend + API routes
+│   ├── web/          # Next.js frontend + API routes + 8 AI agents
 │   └── render/       # BullMQ render worker (FFCreator)
 ├── assets/
-│   └── bgm/          # Local BGM files (default/)
+│   └── fonts/        # Subtitle rendering fonts
 ├── prisma/
-│   └── schema.prisma # Database schema
+│   └── schema.prisma # Database schema (voices, art_styles, bgms, etc.)
 ├── docker-compose.yml
 └── package.json
 ```
@@ -254,12 +254,14 @@ open-director/
 ```
 apps/web/src/server/agent/
 ├── media-provider.ts          # Types + factory + orchestrator
+├── voices.ts                  # TTS voice catalog (loaded from database)
+├── art-styles.ts              # Art style catalog (loaded from database)
 ├── providers/
 │   ├── wavespeed.ts           # WaveSpeed implementation
 │   ├── aihubmix.ts            # AiHubMix implementation
-│   ├── local-bgm.ts           # Local BGM file helper
+│   ├── local-bgm.ts           # Local BGM (random track from database)
 │   └── wavespeed.test.ts      # Provider tests
-└── ...
+└── graph/nodes/recipe/        # 8 LangGraph agent nodes
 ```
 
 ### Tech stack
@@ -326,8 +328,8 @@ apps/web/src/server/agent/
 |----------|---------|-------------|
 | `MEDIA_PROVIDER` | `aihubmix` | Provider: `aihubmix` or `wavespeed` |
 | `AIHUBMIX_API_KEY` | — | AiHubMix API key |
-| `AIHUBMIX_IMAGE_MODEL` | `doubao-seedream-4-0` | Image generation model |
-| `AIHUBMIX_TTS_MODEL` | `tts-1-hd` | TTS model (`edge` for free) |
+| `AIHUBMIX_IMAGE_MODEL` | `gemini-3.1-flash-image-preview-free` | Image generation model |
+| `AIHUBMIX_TTS_MODEL` | `edge` | TTS model (`edge` for free) |
 | `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Edge TTS voice |
 | `WAVESPEED_API_KEY` | — | WaveSpeed API key |
 | `WAVESPEED_TTS_MODEL` | `minimax/speech-02-turbo` | WaveSpeed TTS model |
