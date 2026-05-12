@@ -1,0 +1,378 @@
+# OpenDirector
+
+> Open source AI video studio — turn a rough idea into a director brief, story plan, storyboard, and rendered video.
+
+[English](./README.md) | [中文](./README_CN.md)
+
+---
+
+## What is OpenDirector?
+
+OpenDirector is a **Docker-first, self-hosted** AI video production studio. Describe your idea in natural language, and the AI director will generate a complete production pipeline:
+
+1. **Director Brief** — audience, tone, visual style, and creative direction
+2. **Story Plan** — scenes, characters, and narrative structure
+3. **Storyboard** — visual prompts, scripts, and shot descriptions
+4. **Media Generation** — AI-generated images, audio, and video assets
+5. **Render** — automatic concat and export as a final video
+
+Just `docker compose up` and start creating.
+
+---
+
+## Screenshots
+
+| AI Director Chat | Batch Production |
+|:---:|:---:|
+| ![AI Director](assets/web.jpg) | ![Batch](assets/web2.jpg) |
+| **Creation Editor** | **Storyboard Preview** |
+| ![Creation Editor](assets/web3.jpg) | ![Storyboard Preview](assets/web4.jpg) |
+
+---
+
+## Features
+
+### Creative Mode (AI Director Full Workflow)
+
+- Input one sentence, AI director auto-generates complete plan: brief, story, storyboard, voiceover, images, BGM
+- Multiple **art styles**: Cyberpunk, Ghibli, Pixel Art, Photoreal, 3D, and custom styles
+- **AI-generated story scripts**, editable manually
+- **AI voiceover** with multiple voice options, real-time preview
+- **AI background music**, auto-generated based on story atmosphere
+- **Storyboard preview** with image + voiceover + BGM synced playback
+- Support **16:9 / 9:16 / 1:1** aspect ratios
+- Export at **480p / 720p / 1080p**
+
+### Batch Mode (Short Video Mass Production)
+
+- Input topics, **AI auto-generates multiple scripts**, batch produce short videos
+- **Configurable clip duration** (2-10 seconds), control material switching rhythm
+- Support **Chinese and English** video scripts
+- **Multiple TTS voices** with built-in Edge TTS (free), real-time preview
+- **Subtitle generation** with customizable font, size, color, position, stroke
+- **Background music** — random or指定 local files, adjustable volume
+- Video materials are **HD and royalty-free** (Pexels / Pixabay), local files also supported
+- Generate **multiple videos** at once, pick the best one
+
+### General
+
+- **Multiple AI model providers** — OpenAI, Google Gemini, DeepSeek, Qwen, MiniMax, Ollama, and more
+- **Pluggable media providers** — AiHubMix, WaveSpeed, switch via environment variable
+- **Docker one-click deploy** — `docker compose up` and you're ready
+- **Fully self-hosted** — data stays on your server
+- **Chinese and English UI**
+
+> China users: DeepSeek is recommended as LLM provider (accessible directly, free credits on signup). AiHubMix is recommended for media generation (free credits on signup).
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- (Optional) Node.js 20+ for local development
+
+### One-command start
+
+```bash
+git clone https://github.com/your-org/open-director.git
+cd open-director
+cp .env.example .env
+# Edit .env with your API keys
+docker compose up --build
+```
+
+Then open **http://localhost:3000**.
+
+### Default services
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| App | http://localhost:3000 | — |
+| MinIO Console | http://localhost:9001 | `opendirector` / `opendirector-secret` |
+| MySQL | localhost:3307 | See `.env.prod` |
+| Redis | localhost:6379 | — |
+
+---
+
+## Media Generation Providers
+
+OpenDirector supports multiple media generation providers through a pluggable architecture. Set `MEDIA_PROVIDER` in `.env` to choose:
+
+### AiHubMix (Recommended)
+
+[AiHubMix](https://aihubmix.com) is a unified AI API platform with free tiers for many models. Register and get an API key at [aihubmix.com](https://aihubmix.com).
+
+```env
+MEDIA_PROVIDER="aihubmix"
+AIHUBMIX_API_KEY="sk-your-key"
+
+# Image generation (free options available)
+AIHUBMIX_IMAGE_MODEL="gemini-3.1-flash-image-preview-free"
+AIHUBMIX_IMAGE_EDIT_MODEL="gemini-3.1-flash-image-preview-free"
+
+# TTS (free via Edge TTS)
+AIHUBMIX_TTS_MODEL="edge"
+EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
+
+# BGM (uses local MP3 files from assets/bgm/default/)
+```
+
+**Free model options:**
+| Capability | Free Model | Notes |
+|-----------|-----------|-------|
+| Image generation | `gemini-3.1-flash-image-preview-free` | Nano Banana 2, requires recharge for >10 calls |
+| Image generation | `gpt-image-2-free` | OpenAI's latest, requires recharge for >10 calls |
+| TTS | `edge` | Microsoft Edge TTS, completely free |
+| BGM | Local MP3 | Uses files from `assets/bgm/default/` |
+| LLM | `gpt-4.1-mini-free` | For recipe/script generation |
+
+### WaveSpeed
+
+[WaveSpeed](https://wavespeed.ai) provides high-quality AI models for media generation.
+
+```env
+MEDIA_PROVIDER="wavespeed"
+WAVESPEED_API_KEY="your-wavespeed-key"
+
+# Optional: free alternatives
+WAVESPEED_TTS_MODEL="edge"           # Free Edge TTS
+WAVESPEED_MUSIC_MODEL="local"        # Free local MP3 files
+```
+
+### Provider comparison
+
+| Feature | AiHubMix | WaveSpeed |
+|---------|----------|-----------|
+| Free tier | Yes (limited calls) | No |
+| Image models | Multiple (Gemini, GPT, etc.) | Nano Banana, Seedream |
+| TTS | Edge TTS (free) or paid models | MiniMax or Edge TTS |
+| BGM | Local MP3 | AI-generated or local MP3 |
+| Setup | Register at aihubmix.com | Register at wavespeed.ai |
+
+---
+
+## LLM Configuration
+
+The LLM is used for recipe generation, script writing, and the AI director. It uses OpenAI-compatible API format.
+
+```env
+OPENAI_API_KEY="your-key"
+OPENAI_BASE_URL="https://api.openai.com/v1"
+OPENAI_MODEL="gpt-4o-mini"
+```
+
+**Supported providers:**
+- OpenAI (direct)
+- AiHubMix (`https://aihubmix.com/v1`)
+- Google Gemini (via OpenAI-compatible endpoint)
+- Any OpenAI-compatible API (OpenRouter, LiteLLM, Ollama, etc.)
+
+---
+
+## Local Development
+
+```bash
+pnpm install
+pnpm db:generate
+pnpm dev
+```
+
+This starts the Next.js dev server on http://localhost:3000.
+
+### Environment files
+
+| File | Purpose |
+|------|---------|
+| `.env.example` | Documented template for all variables |
+| `.env` | Local machine overrides (git-ignored) |
+| `.env.prod` | Docker Compose production defaults |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                   Next.js App                   │
+│  (App Router, React 19, TypeScript, Tailwind)   │
+└────────┬──────────┬──────────┬──────────────────┘
+         │          │          │
+    ┌────▼───┐ ┌────▼───┐ ┌───▼────┐
+    │ MySQL  │ │ Redis  │ │ MinIO  │
+    │   8.4  │ │   7    │ │  S3    │
+    └────────┘ └────┬───┘ └────────┘
+                    │
+              ┌─────▼──────┐
+              │   Worker   │
+              │ (FFCreator) │
+              └────────────┘
+```
+
+### Monorepo structure
+
+```
+open-director/
+├── apps/
+│   ├── web/          # Next.js frontend + API routes
+│   └── render/       # BullMQ render worker (FFCreator)
+├── assets/
+│   └── bgm/          # Local BGM files (default/)
+├── prisma/
+│   └── schema.prisma # Database schema
+├── docker-compose.yml
+└── package.json
+```
+
+### Media provider architecture
+
+```
+apps/web/src/server/agent/
+├── media-provider.ts          # Types + factory + orchestrator
+├── providers/
+│   ├── wavespeed.ts           # WaveSpeed implementation
+│   ├── aihubmix.ts            # AiHubMix implementation
+│   ├── local-bgm.ts           # Local BGM file helper
+│   └── wavespeed.test.ts      # Provider tests
+└── ...
+```
+
+### Tech stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| AI | LangChain + LangGraph |
+| Database | Prisma + MySQL 8.4 |
+| Queue | BullMQ + Redis |
+| Storage | MinIO (S3-compatible) |
+| Render | FFCreator (FFmpeg-based) |
+| Auth | Custom credentials (Prisma-backed) |
+| i18n | next-intl (English + Chinese) |
+
+---
+
+## Routes
+
+### Pages
+
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page |
+| `/chat` | AI director studio |
+| `/chat/[id]` | Existing conversation |
+| `/creation/[id]` | Creation editor (storyboard preview + export) |
+| `/space` | User workspace |
+| `/batch` | Batch video production |
+| `/signin`, `/signup` | Authentication |
+
+### API endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/api/agent-chat` | AI director chat (streaming) |
+| `/api/threads` | Thread CRUD |
+| `/api/messages` | Message CRUD |
+| `/api/assets` | Asset management |
+| `/api/recipes/thread/[id]` | Recipe operations |
+| `/api/uploads/init`, `/complete` | File upload |
+| `/api/render/quick-concat` | Video render |
+| `/api/jobs/[id]` | Job status |
+
+---
+
+## Configuration
+
+### Required
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | Set in `.env.prod` | MySQL connection string |
+| `REDIS_HOST` | `redis` | Redis host |
+| `REDIS_PORT` | `6379` | Redis port |
+| `S3_ENDPOINT` | `http://minio:9000` | S3-compatible storage endpoint |
+| `S3_ACCESS_KEY_ID` | `opendirector` | S3 access key |
+| `S3_SECRET_ACCESS_KEY` | `opendirector-secret` | S3 secret key |
+| `S3_BUCKET` | `open-director` | S3 bucket name |
+
+### Media generation
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEDIA_PROVIDER` | `aihubmix` | Provider: `aihubmix` or `wavespeed` |
+| `AIHUBMIX_API_KEY` | — | AiHubMix API key |
+| `AIHUBMIX_IMAGE_MODEL` | `doubao-seedream-4-0` | Image generation model |
+| `AIHUBMIX_TTS_MODEL` | `tts-1-hd` | TTS model (`edge` for free) |
+| `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Edge TTS voice |
+| `WAVESPEED_API_KEY` | — | WaveSpeed API key |
+| `WAVESPEED_TTS_MODEL` | `minimax/speech-02-turbo` | WaveSpeed TTS model |
+| `WAVESPEED_MUSIC_MODEL` | `wavespeed-ai/ace-step-1.5` | WaveSpeed BGM model |
+
+### LLM
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENAI_API_KEY` | — | OpenAI-compatible API key |
+| `OPENAI_BASE_URL` | — | API base URL |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Model name |
+
+### Batch mode
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PEXELS_API_KEY` | — | Pexels API key for stock videos |
+| `PIXABAY_API_KEY` | — | Pixabay API key for stock videos |
+| `BATCH_TTS_PROVIDER` | `edge` | Batch TTS provider |
+| `BATCH_EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Batch Edge TTS voice |
+
+---
+
+## Deployment
+
+### Docker Compose (recommended)
+
+```bash
+docker compose up -d --build
+```
+
+This starts all services: MySQL, Redis, MinIO, web app, and render worker.
+
+### Manual
+
+```bash
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+pnpm build
+pnpm start
+```
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -m "feat: add my feature"`
+4. Push to the branch: `git push origin feature/my-feature`
+5. Open a Pull Request
+
+### Development guidelines
+
+- Run `pnpm typecheck` before committing
+- Run `pnpm lint` to check code style
+- Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
+
+---
+
+## Roadmap
+
+- [ ] AI Digital Human — Support digital avatars for talking-head video generation
+- [ ] Manga Drama Enhancement — Comic panel animation, character expression switching, camera effects
+
+---
+
+## License
+
+[AGPL-3.0](./LICENSE)

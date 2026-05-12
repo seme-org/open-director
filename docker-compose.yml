@@ -1,0 +1,92 @@
+# 启用 Docker BuildKit 以获得更好的构建性能和缓存支持
+# 在运行 docker-compose build 前设置环境变量：
+# export DOCKER_BUILDKIT=1
+# export COMPOSE_DOCKER_CLI_BUILD=1
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env.prod
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    env_file:
+      - .env.prod
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 2; done;
+      mc mb --ignore-existing local/$$S3_BUCKET;
+      mc anonymous set download local/$$S3_BUCKET;
+      "
+
+  web:
+    build:
+      context: .
+      target: web-runner
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "3000:3000"
+    command: sh -c "pnpm -C /app exec prisma migrate deploy --schema /app/prisma/schema.prisma && node apps/web/server.js"
+
+  worker:
+    build:
+      context: .
+      target: render-runner
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+    command: sh -c "pnpm -C /app exec prisma migrate deploy --schema /app/prisma/schema.prisma && xvfb-run -a -s '-ac -screen 0 1280x1024x24' pnpm -C /app/apps/render worker"
+
+volumes:
+  mysql-data:
+  redis-data:
+  minio-data:

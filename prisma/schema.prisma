@@ -1,0 +1,414 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  TEXT
+  RENDER
+  OTHER
+}
+
+enum JobStatus {
+  QUEUED
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+enum ToolCallStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions      Session[]
+  threads       Thread[]
+  messages      Message[]
+  assets        Asset[]
+  subjects      Subject[]
+  artStyles     ArtStyle[]
+  uploads       Upload[]
+  jobs          Job[]
+  toolCalls     ToolCall[]
+  renderOutputs RenderOutput[]
+  batches       Batch[]
+  Bgm           Bgm[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Thread {
+  id          String    @id @default(cuid())
+  userId      String?
+  title       String
+  description String?   @db.Text
+  coverUrl    String?   @db.Text
+  intent      String?
+  metadata    Json?
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages      Message[]
+  agentState    AgentState?
+  recipes       Recipe[]
+  blocks        Block[]
+  assets        Asset[]
+  jobs          Job[]
+  toolCalls     ToolCall[]
+  renderOutputs RenderOutput[]
+
+  @@index([userId, updatedAt])
+  @@index([isDeleted, updatedAt])
+  @@map("threads")
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  threadId    String
+  userId      String?
+  role        String
+  content     String?  @db.Text
+  parts       Json?
+  attachments Json?
+  annotations Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
+  @@index([userId])
+  @@map("messages")
+}
+
+model AgentState {
+  id          String   @id @default(cuid())
+  threadId    String   @unique
+  state       Json
+  currentStep String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@map("agent_states")
+}
+
+model Recipe {
+  id        String   @id @default(cuid())
+  threadId  String
+  title     String
+  kind      String
+  content   Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, version])
+  @@map("recipes")
+}
+
+model Block {
+  id           String   @id @default(cuid())
+  threadId     String
+  order        Int
+  title        String
+  script       String?  @db.Text
+  visualPrompt String?  @db.Text
+  audioPrompt  String?  @db.Text
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  thread Thread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  assets Asset[]
+
+  @@index([threadId, order])
+  @@map("blocks")
+}
+
+model Asset {
+  id        String    @id @default(cuid())
+  threadId  String?
+  blockId   String?
+  userId    String?
+  type      AssetType @default(OTHER)
+  title     String
+  url       String?   @db.Text
+  objectKey String?   @unique
+  mimeType  String?
+  size      BigInt?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  thread        Thread?        @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  block         Block?         @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  uploads       Upload[]
+  renderOutputs RenderOutput[]
+
+  @@index([threadId, createdAt])
+  @@index([userId])
+  @@map("assets")
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  userId      String?
+  name        String
+  description String?  @db.Text
+  imageUrl    String?  @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("subjects")
+}
+
+model Voices {
+  voiceId     String   @id @map("voice_id") @db.VarChar(255)
+  name        String   @db.VarChar(255)
+  voiceSample String?  @map("voice_sample") @db.VarChar(526)
+  userId      String?  @map("user_id") @db.VarChar(255)
+  gender      String   @default("unknown") @db.VarChar(32)
+  detail      String?  @db.VarChar(255)
+  model       String   @default("speech-02-hd") @db.VarChar(128)
+  parameters  Json?
+  provider    String   @default("wavespeed") @db.VarChar(128)
+  isPublic    Boolean  @default(false) @map("is_public")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([userId], map: "idx_voices_user_id")
+  @@index([provider], map: "idx_voices_provider")
+  @@index([isPublic], map: "idx_voices_is_public")
+  @@map("voices")
+}
+
+model ArtStyle {
+  id           String   @id @map("art_style_id") @db.VarChar(64)
+  name         String   @db.VarChar(255)
+  category     String   @db.VarChar(128)
+  imageUrl     String?  @map("image_url") @db.VarChar(512)
+  description  String?  @db.VarChar(255)
+  promptPrefix String   @map("prompt_prefix") @db.Text
+  keywords     Json?
+  userId       String?  @map("user_id") @db.VarChar(255)
+  isPublic     Boolean  @default(false) @map("is_public")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  isDeleted    Boolean  @default(false) @map("is_deleted")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "idx_art_styles_user_id")
+  @@index([isPublic], map: "idx_art_styles_is_public")
+  @@index([category], map: "idx_art_styles_category")
+  @@index([name], map: "idx_art_styles_name")
+  @@map("art_styles")
+}
+
+model Upload {
+  id          String    @id @default(cuid())
+  userId      String?
+  assetId     String?
+  objectKey   String    @unique
+  fileName    String
+  mimeType    String
+  size        BigInt?
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  asset Asset? @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@map("uploads")
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  queueId     String?   @unique
+  threadId    String?
+  userId      String?
+  batchItemId String?
+  type        String
+  status      JobStatus @default(QUEUED)
+  progress    Int       @default(0)
+  input       Json?
+  output      Json?
+  error       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  finishedAt  DateTime?
+
+  thread        Thread?        @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  batchItem     BatchItem?     @relation(fields: [batchItemId], references: [id], onDelete: SetNull)
+  renderOutputs RenderOutput[]
+
+  @@index([threadId, createdAt])
+  @@index([batchItemId])
+  @@map("jobs")
+}
+
+model Batch {
+  id          String    @id @default(cuid())
+  userId      String?
+  title       String
+  status      String    @default("QUEUED")
+  itemCount   Int       @default(0)
+  outputCount Int       @default(0)
+  settings    Json
+  deleted     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  finishedAt  DateTime?
+
+  user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items BatchItem[]
+
+  @@index([userId, updatedAt])
+  @@map("batches")
+}
+
+model BatchItem {
+  id             String    @id @default(cuid())
+  batchId        String
+  order          Int
+  subject        String?   @db.Text
+  script         String?   @db.Text
+  terms          Json?
+  resolvedScript String?   @db.Text
+  resolvedTerms  Json?
+  materials      Json?
+  status         String    @default("QUEUED")
+  statusDetail   String?   @db.Text
+  progress       Int       @default(0)
+  error          String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  finishedAt     DateTime?
+
+  batch   Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  jobs    Job[]
+  outputs BatchOutput[]
+
+  @@index([batchId, order])
+  @@map("batch_items")
+}
+
+model BatchOutput {
+  id          String   @id @default(cuid())
+  batchItemId String
+  jobId       String?
+  url         String   @db.Text
+  objectKey   String?
+  title       String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  batchItem BatchItem @relation(fields: [batchItemId], references: [id], onDelete: Cascade)
+
+  @@index([batchItemId, createdAt])
+  @@map("batch_outputs")
+}
+
+model ToolCall {
+  id        String         @id @default(cuid())
+  threadId  String?
+  userId    String?
+  name      String
+  status    ToolCallStatus @default(PENDING)
+  args      Json?
+  result    Json?
+  error     String?        @db.Text
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  thread Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("tool_calls")
+}
+
+model RenderOutput {
+  id        String   @id @default(cuid())
+  threadId  String?
+  userId    String?
+  jobId     String?
+  assetId   String?
+  url       String   @db.Text
+  objectKey String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  thread Thread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  job    Job?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  asset  Asset?  @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@map("render_outputs")
+}
+
+model Bgm {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(255)
+  url         String   @db.VarChar(512)
+  category    String?  @db.VarChar(128)
+  description String?  @db.VarChar(255)
+  userId      String?  @map("user_id") @db.VarChar(255)
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "idx_bgms_user_id")
+  @@index([isPublic], map: "idx_bgms_is_public")
+  @@index([category], map: "idx_bgms_category")
+  @@map("bgms")
+}

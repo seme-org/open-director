@@ -1,0 +1,20 @@
+node_modules
+.next
+dist
+coverage
+.env
+.env.local
+.env.prod
+*.tsbuildinfo
+*.log
+/uploads
+/cache
+/apps/render/cache/
+/output
+/mysql-data
+/redis-data
+/minio-data
+.vscode
+# Local dev env with secrets
+apps/web/.env
+.tmp
