@@ -4,7 +4,7 @@ import { defaultBatchSettings, normalizeBatchSettings } from "./settings";
 describe("batch settings", () => {
   it("defaults to the built-in batch controls", () => {
     expect(defaultBatchSettings.tts.provider).toBe("edge");
-    expect(defaultBatchSettings.materials.source).toBe("local");
+    expect(defaultBatchSettings.materials.source).toBe("pexels");
     expect(defaultBatchSettings.bgm.source).toBe("random");
     expect(defaultBatchSettings.video.transition.enabled).toBe(false);
     expect(defaultBatchSettings.mediaGeneration.aiImages).toBe(false);

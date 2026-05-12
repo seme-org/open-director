@@ -128,7 +128,7 @@ const defaultSettings: BatchSettings = {
     },
   },
   materials: {
-    source: "local",
+    source: "pexels",
     localDirectory: "assets/materials",
     uploadedUrls: [],
     searchMode: "keywords",
