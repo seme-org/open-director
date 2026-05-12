@@ -44,7 +44,7 @@ Your Idea
 8 specialized agents work in a pipeline:
 
 1. **Script Agent** — generates the story outline and narrative structure
-2. **Art Style Agent** — selects visual style (Cyberpunk, Ghibli, Pixel Art, Photoreal, 3D, or custom)
+2. **Art Style Agent** — selects from 34 built-in styles (e.g. Futuristic Neon Noir, Dreamscape Watercolor Anime, Documentary Realism)
 3. **Storyboard Agent** — breaks the story into scenes with shot descriptions and dialogue
 4. **Character Agent** — designs characters with visual prompts and assigns voice profiles
 5. **Location Agent** — creates environment concepts for each scene
@@ -61,7 +61,7 @@ Each agent is a LangGraph node that streams its output in real-time — you can 
 ### Creative Mode (AI Director Full Workflow)
 
 - Input one sentence, AI director auto-generates complete plan: brief, story, storyboard, voiceover, images, BGM
-- **34 built-in art styles** across 8 categories: Cinematic, Commercial, Futuristic, Retro, Anime, 3D, Illustration, Realistic, Experimental
+- **34 built-in art styles** across 9 categories: Cinematic, Commercial, Futuristic, Retro, Anime, 3D, Illustration, Realistic, Experimental
 - **AI-generated story scripts**, editable manually
 - **AI voiceover** with multiple voice options, real-time preview
 - **AI background music**, auto-generated based on story atmosphere
@@ -78,7 +78,7 @@ Each agent is a LangGraph node that streams its output in real-time — you can 
 - **Subtitle generation** with customizable font, size, color, position, stroke
 - **Background music** — random or specified local files, adjustable volume
 - Video materials are **HD and royalty-free** (Pexels / Pixabay), local files also supported
-- Generate **multiple videos** at once, pick the best one
+- Generate **multiple output variations** at once, pick the best one
 
 ### General
 
