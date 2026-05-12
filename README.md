@@ -10,7 +10,7 @@
 
 OpenDirector is a **Docker-first, self-hosted** AI video production studio. Describe your idea in one sentence, and a team of 8 specialized AI agents collaborate to produce a complete video — with a storyboard, character designs, voiceover, background music, and rendered output.
 
-No video editing skills required. No cloud subscriptions. Just `docker compose up` and start creating.
+Just `docker compose up` and start creating.
 
 ---
 
