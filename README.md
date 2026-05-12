@@ -1,6 +1,6 @@
 # OpenDirector
 
-> Open source AI video studio — turn a rough idea into a director brief, story plan, storyboard, and rendered video.
+> An open-source AI video studio with an 8-agent director pipeline — from a one-line idea to a fully rendered video with voiceover, BGM, and storyboard.
 
 [English](./README.md) | [中文](./README_CN.md)
 
@@ -8,15 +8,9 @@
 
 ## What is OpenDirector?
 
-OpenDirector is a **Docker-first, self-hosted** AI video production studio. Describe your idea in natural language, and the AI director will generate a complete production pipeline:
+OpenDirector is a **Docker-first, self-hosted** AI video production studio. Describe your idea in one sentence, and a team of 8 specialized AI agents collaborate to produce a complete video — with a storyboard, character designs, voiceover, background music, and rendered output.
 
-1. **Director Brief** — audience, tone, visual style, and creative direction
-2. **Story Plan** — scenes, characters, and narrative structure
-3. **Storyboard** — visual prompts, scripts, and shot descriptions
-4. **Media Generation** — AI-generated images, audio, and video assets
-5. **Render** — automatic concat and export as a final video
-
-Just `docker compose up` and start creating.
+No video editing skills required. No cloud subscriptions. Just `docker compose up` and start creating.
 
 ---
 
@@ -27,6 +21,38 @@ Just `docker compose up` and start creating.
 | ![AI Director](assets/web.jpg) | ![Batch](assets/web2.jpg) |
 | **Creation Editor** | **Storyboard Preview** |
 | ![Creation Editor](assets/web3.jpg) | ![Storyboard Preview](assets/web4.jpg) |
+
+---
+
+## How It Works
+
+```
+Your Idea
+   |
+   v
+[Script Agent] --> [Art Style Agent] --> [Storyboard Agent]
+   |                                         |
+   v                                         v
+[Character Agent]  [Location Agent]    [Voice Agent]  [BGM Agent]
+   |                  |                   |              |
+   +--------+---------+-------------------+--------------+
+            |
+            v
+     [Media Agent] --> [Render Worker] --> Final Video
+```
+
+8 specialized agents work in a pipeline:
+
+1. **Script Agent** — generates the story outline and narrative structure
+2. **Art Style Agent** — selects visual style (Cyberpunk, Ghibli, Pixel Art, Photoreal, 3D, or custom)
+3. **Storyboard Agent** — breaks the story into scenes with shot descriptions and dialogue
+4. **Character Agent** — designs characters with visual prompts and assigns voice profiles
+5. **Location Agent** — creates environment concepts for each scene
+6. **Voice Agent** — assigns TTS voices matched to character personality and gender
+7. **BGM Agent** — generates background music based on story atmosphere
+8. **Media Agent** — orchestrates image/voice/music generation into final assets
+
+Each agent is a LangGraph node that streams its output in real-time — you can watch the plan build step by step.
 
 ---
 
@@ -62,8 +88,6 @@ Just `docker compose up` and start creating.
 - **Fully self-hosted** — data stays on your server
 - **Chinese and English UI**
 
-> China users: DeepSeek is recommended as LLM provider (accessible directly, free credits on signup). AiHubMix is recommended for media generation (free credits on signup).
-
 ---
 
 ## Quick Start
@@ -76,7 +100,7 @@ Just `docker compose up` and start creating.
 ### One-command start
 
 ```bash
-git clone https://github.com/your-org/open-director.git
+git clone https://github.com/seme-org/open-director.git
 cd open-director
 cp .env.example .env
 # Edit .env with your API keys
@@ -368,11 +392,6 @@ pnpm start
 
 ## Roadmap
 
-- [ ] AI Digital Human — Support digital avatars for talking-head video generation
-- [ ] Manga Drama Enhancement — Comic panel animation, character expression switching, camera effects
-
----
-
-## License
-
-[AGPL-3.0](./LICENSE)
+- [ ] AI Digital Human — talking-head video generation with digital avatars
+- [ ] Manga Drama — comic panel animation with expression switching and camera effects
+- [ ] Multi-language voiceover — expand TTS voice catalog with more languages
