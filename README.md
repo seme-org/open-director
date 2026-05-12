@@ -76,7 +76,7 @@ Each agent is a LangGraph node that streams its output in real-time — you can 
 - Support **Chinese and English** video scripts
 - **Multiple TTS voices** with built-in Edge TTS (free), real-time preview
 - **Subtitle generation** with customizable font, size, color, position, stroke
-- **Background music** — random or指定 local files, adjustable volume
+- **Background music** — random or specified local files, adjustable volume
 - Video materials are **HD and royalty-free** (Pexels / Pixabay), local files also supported
 - Generate **multiple videos** at once, pick the best one
 
