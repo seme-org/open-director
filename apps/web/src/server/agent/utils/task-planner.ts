@@ -268,7 +268,7 @@ export function planCreationPreparationTasks(
           id: `shot-${index + 1}-image`,
           tool: "image_to_image",
           sceneTitle: block.title,
-          prompt: `${recipe.artStyle.promptPrefix}, ${mediaPrompt?.imageToImagePromptText || block.visualPrompt}`,
+          prompt: (mediaPrompt?.imageToImagePromptText || block.visualPrompt).trim(),
           status: "planned",
           dependsOn: dependsOn.length ? dependsOn : undefined,
           referenceUrls: referenceUrls.length ? referenceUrls : undefined,

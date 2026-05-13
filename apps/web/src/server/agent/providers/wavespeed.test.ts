@@ -23,6 +23,32 @@ vi.mock("@/server/db/prisma", () => ({
   prisma: mockPrisma,
 }));
 
+vi.mock("node-edge-tts", () => ({
+  EdgeTTS: vi.fn().mockImplementation(() => ({
+    ttsPromise: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return {
+    ...actual,
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    readFile: vi.fn().mockResolvedValue(Buffer.from("edge audio")),
+    unlink: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
+vi.mock("@/server/storage/minio", () => ({
+  minioStorage: {
+    putObject: vi.fn(async (input: { objectKey: string }) => ({
+      publicUrl: input.objectKey.includes("/tts/")
+        ? "https://cdn.example/voice.mp3"
+        : "https://cdn.example/object.bin",
+    })),
+  },
+}));
+
 function jsonResponse(body: unknown, init?: ResponseInit) {
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -84,7 +110,7 @@ describe("wavespeed runner integration", () => {
       sceneTitle: "Hook",
       prompt: "premium still",
       status: "planned",
-    }).modelId).toBe("google/nano-banana-pro/text-to-image");
+    }).modelId).toBe("google/nano-banana/text-to-image");
     delete process.env.WAVESPEED_IMAGE_MODEL;
 
     const imageEdit = buildWaveSpeedPayload(
@@ -99,14 +125,16 @@ describe("wavespeed runner integration", () => {
     },
       ["https://cdn.example/reference.png", "https://cdn.example/scene.png"],
     );
-    expect(imageEdit.modelId).toBe("bytedance/seedream-v4/edit");
+    expect(imageEdit.modelId).toBe("google/nano-banana/text-to-image");
     expect(imageEdit.payload).toMatchObject({
       image: "https://cdn.example/reference.png",
       images: ["https://cdn.example/reference.png", "https://cdn.example/scene.png"],
       prompt: "keep subject, change scene",
       aspect_ratio: "1:1",
-      size: "1024*1024",
+      output_format: "png",
+      enable_base64_output: false,
     });
+    expect(imageEdit.payload).not.toHaveProperty("size");
 
     const music = buildWaveSpeedPayload({
       id: "music-1",
@@ -115,12 +143,9 @@ describe("wavespeed runner integration", () => {
       prompt: "warm instrumental pulse",
       status: "planned",
     });
-    expect(music.modelId).toBe("wavespeed-ai/ace-step-1.5");
+    expect(music.modelId).toBe("local-bgm");
     expect(music.payload).toMatchObject({
-      lyrics: "   ",
-      tags: "warm instrumental pulse",
-      duration: 60,
-      seed: -1,
+      prompt: "warm instrumental pulse",
     });
 
     const tts = buildWaveSpeedPayload({
@@ -135,19 +160,13 @@ describe("wavespeed runner integration", () => {
       pitch: 0,
       volume: 1,
     });
-    expect(tts.modelId).toBe("minimax/speech-02-turbo");
+    expect(tts.modelId).toBe("edge-tts");
     expect(tts.payload).toMatchObject({
       text: "Hello there",
       voice_id: "Calm_Woman",
-      emotion: "happy",
       speed: 1.1,
-      pitch: 0,
-      volume: 1,
-      english_normalization: true,
-      sample_rate: 32000,
-      birate: 128000,
     });
-    expect(tts.payload).not.toHaveProperty("voice");
+    expect(tts.payload).not.toHaveProperty("emotion");
   });
 
   it("polls Wavespeed until a succeeded prediction returns outputs", async () => {
@@ -181,10 +200,7 @@ describe("wavespeed runner integration", () => {
       if (url === "https://api.example/image-result") {
         return jsonResponse({ code: 200, data: { id: "pred-image", model: "image", status: "completed", outputs: ["https://cdn.example/image.png"] } });
       }
-      if (init?.method === "POST" && url.includes("speech-02-turbo")) {
-        return jsonResponse({ code: 200, data: { id: "pred-tts", model: "tts", status: "processing", urls: { get: "https://api.example/tts-result" } } });
-      }
-      return jsonResponse({ code: 200, data: { id: "pred-tts", model: "tts", status: "completed", outputs: ["https://cdn.example/voice.mp3"] } });
+      throw new Error(`Unexpected fetch call: ${url}`);
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -255,12 +271,7 @@ describe("wavespeed runner integration", () => {
   });
 
   it("reports runner task status changes while executing", async () => {
-    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-      if (init?.method === "POST") {
-        return jsonResponse({ code: 200, data: { id: "pred-voice", model: "tts", status: "processing", urls: { get: "https://api.example/voice" } } });
-      }
-      return jsonResponse({ code: 200, data: { id: "pred-voice", model: "tts", status: "completed", outputs: ["https://cdn.example/voice.mp3"] } });
-    });
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     mockPrisma.toolCall.create.mockResolvedValueOnce({ id: "tool-voice" });
     mockPrisma.asset.create.mockResolvedValueOnce({ id: "asset-voice" });
@@ -285,15 +296,11 @@ describe("wavespeed runner integration", () => {
       { status: "running", taskId: "voice-1" },
       { status: "completed", taskId: "voice-1", assetId: "asset-voice" },
     ]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("persists TTS duration from Wavespeed timings.inference milliseconds", async () => {
-    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
-      if (init?.method === "POST") {
-        return jsonResponse({ code: 200, data: { id: "pred-voice", model: "tts", status: "processing", urls: { get: "https://api.example/voice" } } });
-      }
-      return jsonResponse({ code: 200, data: { id: "pred-voice", model: "tts", status: "completed", outputs: ["https://cdn.example/voice.mp3"], timings: { inference: 2840 } } });
-    });
+  it("persists Edge TTS metadata without remote TTS model duration", async () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     mockPrisma.toolCall.create.mockResolvedValueOnce({ id: "tool-voice" });
     mockPrisma.asset.create.mockResolvedValueOnce({ id: "asset-voice" });
@@ -311,9 +318,11 @@ describe("wavespeed runner integration", () => {
     expect(mockPrisma.asset.create.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({
       data: expect.objectContaining({
         metadata: expect.objectContaining({
-          duration: 2.84,
+          provider: "wavespeed",
+          outputs: ["https://cdn.example/voice.mp3"],
         }),
       }),
     }));
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

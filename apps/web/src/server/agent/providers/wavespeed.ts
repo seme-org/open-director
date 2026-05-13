@@ -19,10 +19,13 @@ function aspectSize(aspectRatio: AspectRatio = "16:9") {
 function resolveWaveSpeedModelId(modelId: string) {
   const aliases: Record<string, string> = {
     "nano-banana": "google/nano-banana/text-to-image",
-    "nano-banana-pro": "google/nano-banana-pro/text-to-image",
-    "seedream-v4/edit": "bytedance/seedream-v4/edit",
   };
   return aliases[modelId] ?? modelId;
+}
+
+function nanoBananaModelId() {
+  // Image generation is intentionally pinned for consistent text-to-image and reference-image results.
+  return resolveWaveSpeedModelId("nano-banana");
 }
 
 function wavespeedBaseUrl() {
@@ -149,11 +152,7 @@ function buildImagePayload(modelId: string, prompt: string, aspectRatio: AspectR
 
 export function buildWaveSpeedPayload(task: { tool: string; prompt: string; aspectRatio?: AspectRatio; voiceId?: string; emotion?: string; speed?: number; pitch?: number; volume?: number; [key: string]: unknown }, dependencyUrls: string[] = []) {
   if (task.tool === "create_character" || task.tool === "create_location") {
-    const modelId = resolveWaveSpeedModelId(
-      task.tool === "create_character"
-        ? env("WAVESPEED_CHARACTER_MODEL", env("WAVESPEED_IMAGE_MODEL", "nano-banana"))
-        : env("WAVESPEED_IMAGE_MODEL", "nano-banana"),
-    );
+    const modelId = nanoBananaModelId();
     const aspectRatio = task.aspectRatio || "16:9";
     return { modelId, payload: buildImagePayload(modelId, task.prompt, aspectRatio) };
   }
@@ -161,7 +160,7 @@ export function buildWaveSpeedPayload(task: { tool: string; prompt: string; aspe
   if (task.tool === "image_to_image") {
     const [primaryImage] = dependencyUrls;
     const aspectRatio = task.aspectRatio || "16:9";
-    const modelId = resolveWaveSpeedModelId(env("WAVESPEED_IMAGE_TO_IMAGE_MODEL", "seedream-v4/edit"));
+    const modelId = nanoBananaModelId();
     return {
       modelId,
       payload: {
@@ -169,45 +168,27 @@ export function buildWaveSpeedPayload(task: { tool: string; prompt: string; aspe
         images: dependencyUrls,
         prompt: task.prompt,
         aspect_ratio: aspectRatio,
-        size: aspectSize(aspectRatio),
-        num_images: 1,
+        output_format: env("WAVESPEED_IMAGE_OUTPUT_FORMAT", "png"),
         enable_base64_output: false,
-        enable_safety_checker: true,
-        seed: -1,
       },
     };
   }
 
   if (task.tool === "tts_create") {
-    const modelId = env("WAVESPEED_TTS_MODEL", "minimax/speech-02-turbo");
     return {
-      modelId,
+      modelId: "edge-tts",
       payload: {
         text: task.prompt,
-        voice_id: task.voiceId || env("WAVESPEED_TTS_VOICE", "Calm_Woman"),
-        emotion: task.emotion,
+        voice_id: task.voiceId || env("EDGE_TTS_VOICE", "zh-CN-XiaoxiaoNeural"),
         speed: task.speed,
-        pitch: task.pitch,
-        volume: task.volume,
-        english_normalization: env("WAVESPEED_TTS_ENGLISH_NORMALIZATION", "true") !== "false",
-        sample_rate: Number(env("WAVESPEED_TTS_SAMPLE_RATE", "32000")),
-        birate: Number(env("WAVESPEED_TTS_BITRATE", "128000")),
-        model: env("WAVESPEED_TTS_PROVIDER_MODEL", "speech-02-turbo"),
-        ...(env("WAVESPEED_TTS_LANGUAGE", "")
-          ? { language_boost: env("WAVESPEED_TTS_LANGUAGE", "") }
-          : {}),
       },
     };
   }
 
-  const musicModel = env("WAVESPEED_MUSIC_MODEL", "wavespeed-ai/ace-step-1.5");
   return {
-    modelId: musicModel,
+    modelId: "local-bgm",
     payload: {
-      lyrics: "   ",
-      tags: task.prompt || "instrumental",
-      duration: Number(env("WAVESPEED_MUSIC_DURATION", "60")),
-      seed: -1,
+      prompt: task.prompt || "instrumental",
     },
   };
 }
@@ -284,9 +265,7 @@ async function generateEdgeTTS(text: string, options: {
 export function createWaveSpeedProvider(): MediaProvider {
   return {
     async generateImage(prompt, options) {
-      const modelId = resolveWaveSpeedModelId(
-        env("WAVESPEED_IMAGE_MODEL", "nano-banana"),
-      );
+      const modelId = nanoBananaModelId();
       const payload = buildImagePayload(modelId, prompt, options.aspectRatio || "16:9");
       return runPrediction(modelId, payload);
     },
@@ -294,61 +273,25 @@ export function createWaveSpeedProvider(): MediaProvider {
     async generateImageWithReference(prompt, referenceUrls, options) {
       const [primaryImage] = referenceUrls;
       const aspectRatio = options.aspectRatio || "16:9";
-      const modelId = resolveWaveSpeedModelId(env("WAVESPEED_IMAGE_TO_IMAGE_MODEL", "seedream-v4/edit"));
+      const modelId = nanoBananaModelId();
       const payload = {
         image: primaryImage,
         images: referenceUrls,
         prompt,
         aspect_ratio: aspectRatio,
-        size: aspectSize(aspectRatio),
-        num_images: 1,
+        output_format: env("WAVESPEED_IMAGE_OUTPUT_FORMAT", "png"),
         enable_base64_output: false,
-        enable_safety_checker: true,
-        seed: -1,
       };
       return runPrediction(modelId, payload);
     },
 
     async generateTTS(text, options) {
-      const modelId = env("WAVESPEED_TTS_MODEL", "minimax/speech-02-turbo");
-
-      if (modelId === "edge") {
-        return generateEdgeTTS(text, options);
-      }
-
-      const payload = {
-        text,
-        voice_id: options.voiceId || env("WAVESPEED_TTS_VOICE", "zh-CN-XiaoxiaoNeural"),
-        emotion: options.emotion,
-        speed: options.speed,
-        pitch: options.pitch,
-        volume: options.volume,
-        english_normalization: env("WAVESPEED_TTS_ENGLISH_NORMALIZATION", "true") !== "false",
-        sample_rate: Number(env("WAVESPEED_TTS_SAMPLE_RATE", "32000")),
-        birate: Number(env("WAVESPEED_TTS_BITRATE", "128000")),
-        model: env("WAVESPEED_TTS_PROVIDER_MODEL", "speech-02-turbo"),
-        ...(env("WAVESPEED_TTS_LANGUAGE", "")
-          ? { language_boost: env("WAVESPEED_TTS_LANGUAGE", "") }
-          : {}),
-      };
-      return runPrediction(modelId, payload);
+      return generateEdgeTTS(text, options);
     },
 
     async generateBGM(prompt) {
-      const modelId = env("WAVESPEED_MUSIC_MODEL", "wavespeed-ai/ace-step-1.5");
-
-      if (modelId === "local") {
-        const bgmUrl = await uploadLocalBgm(prompt);
-        return { outputs: [bgmUrl], raw: { source: "local" } };
-      }
-
-      const payload = {
-        lyrics: "   ",
-        tags: prompt || "instrumental",
-        duration: Number(env("WAVESPEED_MUSIC_DURATION", "60")),
-        seed: -1,
-      };
-      return runPrediction(modelId, payload);
+      const bgmUrl = await uploadLocalBgm(prompt);
+      return { outputs: [bgmUrl], raw: { source: "local" } };
     },
   };
 }

@@ -1,7 +1,6 @@
 import { AssetType, ToolCallStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
 import { createWaveSpeedProvider } from "./providers/wavespeed";
-import { createAiHubMixProvider } from "./providers/aihubmix";
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
 
@@ -91,11 +90,7 @@ function runnerConcurrency() {
 }
 
 function getProvider(): MediaProvider {
-  const provider = env("MEDIA_PROVIDER", "aihubmix");
-  if (provider === "wavespeed") {
-    return createWaveSpeedProvider();
-  }
-  return createAiHubMixProvider();
+  return createWaveSpeedProvider();
 }
 
 function buildPayload(task: RunnerTask, dependencyUrls: string[]) {
