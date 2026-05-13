@@ -45,7 +45,6 @@ Just `docker compose up` and start creating.
   </tr>
 </table>
 
-GitHub may fall back to links for external MP4 files, so each demo also includes a direct URL.
 
 ---
 
