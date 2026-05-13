@@ -18,7 +18,7 @@ Just `docker compose up` and start creating.
 
 | AI Director Chat | Batch Production |
 |:---:|:---:|
-| ![AI Director](assets/web.jpg) | ![Batch](assets/web2.jpg) |
+| ![AI Director](assets/web.jpg) | ![Batch](assets/web2.jpeg) |
 | **Creation Editor** | **Storyboard Preview** |
 | ![Creation Editor](assets/web3.jpg) | ![Storyboard Preview](assets/web4.jpg) |
 
