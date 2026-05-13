@@ -35,6 +35,12 @@ Just `docker compose up` and start creating.
       <video src="https://github.com/user-attachments/assets/0ac73afe-116a-4ba0-9f8a-769c55d78b47" controls muted playsinline width="100%"></video>
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <video src="https://github.com/user-attachments/assets/2fb8f97e-e3cc-4ce7-ae4d-7dced1689197" controls muted playsinline width="100%"></video>
+    </td>
+    
+  </tr>
 </table>
 
 GitHub may fall back to links for external MP4 files, so each demo also includes a direct URL.
