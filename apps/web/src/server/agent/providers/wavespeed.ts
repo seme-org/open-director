@@ -19,13 +19,20 @@ function aspectSize(aspectRatio: AspectRatio = "16:9") {
 function resolveWaveSpeedModelId(modelId: string) {
   const aliases: Record<string, string> = {
     "nano-banana": "google/nano-banana/text-to-image",
+    "nano-banana-edit": "google/nano-banana-2/edit",
+    "nano-banana-2-edit": "google/nano-banana-2/edit",
+    "nano-banana-pro-edit": "google/nano-banana-pro/edit",
   };
   return aliases[modelId] ?? modelId;
 }
 
 function nanoBananaModelId() {
   // Image generation is intentionally pinned for consistent text-to-image and reference-image results.
-  return resolveWaveSpeedModelId("nano-banana");
+  return resolveWaveSpeedModelId(env("WAVESPEED_IMAGE_MODEL", "nano-banana"));
+}
+
+function imageToImageModelId() {
+  return resolveWaveSpeedModelId(env("WAVESPEED_IMAGE_TO_IMAGE_MODEL", "google/nano-banana-2/edit"));
 }
 
 function wavespeedBaseUrl() {
@@ -160,7 +167,7 @@ export function buildWaveSpeedPayload(task: { tool: string; prompt: string; aspe
   if (task.tool === "image_to_image") {
     const [primaryImage] = dependencyUrls;
     const aspectRatio = task.aspectRatio || "16:9";
-    const modelId = nanoBananaModelId();
+    const modelId = imageToImageModelId();
     return {
       modelId,
       payload: {
@@ -273,7 +280,7 @@ export function createWaveSpeedProvider(): MediaProvider {
     async generateImageWithReference(prompt, referenceUrls, options) {
       const [primaryImage] = referenceUrls;
       const aspectRatio = options.aspectRatio || "16:9";
-      const modelId = nanoBananaModelId();
+      const modelId = imageToImageModelId();
       const payload = {
         image: primaryImage,
         images: referenceUrls,
@@ -282,7 +289,14 @@ export function createWaveSpeedProvider(): MediaProvider {
         output_format: env("WAVESPEED_IMAGE_OUTPUT_FORMAT", "png"),
         enable_base64_output: false,
       };
-      return runPrediction(modelId, payload);
+      const result = await runPrediction(modelId, payload);
+      return {
+        ...result,
+        raw: {
+          ...(result.raw && typeof result.raw === "object" && !Array.isArray(result.raw) ? result.raw : {}),
+          modelId,
+        },
+      };
     },
 
     async generateTTS(text, options) {

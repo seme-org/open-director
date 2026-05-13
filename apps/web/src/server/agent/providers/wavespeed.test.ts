@@ -115,10 +115,10 @@ describe("wavespeed runner integration", () => {
       status: "planned",
       referenceUrl: "https://cdn.example/reference.png",
       aspectRatio: "1:1",
-    },
+      },
       ["https://cdn.example/reference.png", "https://cdn.example/scene.png"],
     );
-    expect(imageEdit.modelId).toBe("google/nano-banana/text-to-image");
+    expect(imageEdit.modelId).toBe("google/nano-banana-2/edit");
     expect(imageEdit.payload).toMatchObject({
       image: "https://cdn.example/reference.png",
       images: ["https://cdn.example/reference.png", "https://cdn.example/scene.png"],
@@ -128,6 +128,18 @@ describe("wavespeed runner integration", () => {
       enable_base64_output: false,
     });
     expect(imageEdit.payload).not.toHaveProperty("size");
+
+    process.env.WAVESPEED_IMAGE_TO_IMAGE_MODEL = "nano-banana-pro-edit";
+    expect(buildWaveSpeedPayload(
+      {
+        id: "edit-pro",
+        tool: "image_to_image",
+        sceneTitle: "Hook",
+        prompt: "keep reference",
+        status: "planned",
+      },
+      ["https://cdn.example/reference.png"],
+    ).modelId).toBe("google/nano-banana-pro/edit");
 
     const music = buildWaveSpeedPayload({
       id: "music-1",
@@ -160,6 +172,66 @@ describe("wavespeed runner integration", () => {
       speed: 1.1,
     });
     expect(tts.payload).not.toHaveProperty("emotion");
+  });
+
+  it("persists image-to-image model and resolved reference URLs for debugging", async () => {
+    const requests: Array<{ url: string; body?: unknown }> = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      requests.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+      if (init?.method === "POST" && url.includes("edit")) {
+        return jsonResponse({ code: 200, data: { id: "pred-edit", model: "edit", status: "processing", urls: { get: "https://api.example/edit-result" } } });
+      }
+      if (url === "https://api.example/edit-result") {
+        return jsonResponse({ code: 200, data: { id: "pred-edit", model: "edit", status: "completed", outputs: ["https://cdn.example/edit.png"] } });
+      }
+      throw new Error(`Unexpected fetch call: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    mockPrisma.toolCall.create.mockResolvedValueOnce({ id: "tool-edit" });
+    mockPrisma.asset.create.mockResolvedValueOnce({ id: "asset-edit" });
+
+    await executeRunnerTasks({
+      threadId: "thread-1",
+      userId: "user-1",
+      recipeId: "recipe-1",
+      tasks: [
+        {
+          id: "shot-1-image",
+          tool: "image_to_image",
+          sceneTitle: "Shot",
+          prompt: "keep @Monster",
+          status: "planned",
+          referenceUrls: ["https://cdn.example/monster.png"],
+          dependsOn: "scene-image",
+        },
+      ],
+      blocks: [{ id: "block-1", title: "Shot" }],
+    });
+
+    expect(requests[0]).toEqual(expect.objectContaining({
+      url: "https://api.wavespeed.ai/api/v3/google/nano-banana-2/edit",
+      body: expect.objectContaining({
+        image: "https://cdn.example/monster.png",
+        images: ["https://cdn.example/monster.png"],
+      }),
+    }));
+    expect(mockPrisma.toolCall.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        args: expect.objectContaining({
+          task: expect.objectContaining({ id: "shot-1-image" }),
+          dependencyUrls: ["https://cdn.example/monster.png"],
+        }),
+      }),
+    }));
+    expect(mockPrisma.asset.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          modelId: "google/nano-banana-2/edit",
+          dependencyUrls: ["https://cdn.example/monster.png"],
+        }),
+      }),
+    }));
   });
 
   it("polls Wavespeed until a succeeded prediction returns outputs", async () => {

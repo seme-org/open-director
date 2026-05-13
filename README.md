@@ -150,14 +150,16 @@ Then open **http://localhost:3000**.
 
 ## Media Generation
 
-OpenDirector uses WaveSpeed for image generation, pinned to Nano Banana for both text-to-image and image-to-image tasks.
+OpenDirector uses WaveSpeed for image generation. Character and location plates use a text-to-image model, while storyboard frames with character references must use an image-to-image/edit model so reference images are honored.
 
 ```env
 WAVESPEED_API_KEY="your-wavespeed-key"
 WAVESPEED_IMAGE_MODEL="nano-banana"
-WAVESPEED_IMAGE_TO_IMAGE_MODEL="nano-banana"
+WAVESPEED_IMAGE_TO_IMAGE_MODEL="nano-banana-2-edit"
 EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
 ```
+
+Do not set `WAVESPEED_IMAGE_TO_IMAGE_MODEL` to `nano-banana`: that alias routes to a text-to-image endpoint and can ignore character reference images.
 
 Speech uses local Edge TTS. Background music uses local tracks from `assets/bgm/default/`.
 
@@ -311,8 +313,8 @@ apps/web/src/server/agent/
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `WAVESPEED_API_KEY` | — | WaveSpeed API key |
-| `WAVESPEED_IMAGE_MODEL` | `nano-banana` | Image generation model |
-| `WAVESPEED_IMAGE_TO_IMAGE_MODEL` | `nano-banana` | Reference image generation model |
+| `WAVESPEED_IMAGE_MODEL` | `nano-banana` | Text-to-image model for character and location plates |
+| `WAVESPEED_IMAGE_TO_IMAGE_MODEL` | `nano-banana-2-edit` | Image-to-image/edit model for storyboard frames with character references |
 | `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Local Edge TTS voice |
 
 ### LLM

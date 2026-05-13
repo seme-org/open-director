@@ -132,7 +132,7 @@ async function executeSingleRunnerTask(input: ExecuteRunnerTasksInput & {
       userId: input.userId,
       name: input.task.tool,
       status: ToolCallStatus.RUNNING,
-      args: toJson({ task: input.task }),
+      args: toJson({ task: input.task, dependencyUrls: input.dependencyUrls }),
     },
   });
 
@@ -151,6 +151,8 @@ async function executeSingleRunnerTask(input: ExecuteRunnerTasksInput & {
         metadata: toJson({
           provider: "wavespeed",
           task: input.task,
+          dependencyUrls: input.dependencyUrls,
+          ...(extractModelId(result.raw) ? { modelId: extractModelId(result.raw) } : {}),
           outputs: result.outputs,
           ...(extractDuration(result.raw) ? { duration: extractDuration(result.raw) } : {}),
         }),
@@ -218,6 +220,12 @@ function extractDuration(raw: unknown): number | undefined {
   const timings = asRecord(record.timings);
   const inferenceMilliseconds = numberValue(timings.inference);
   return inferenceMilliseconds ? inferenceMilliseconds / 1000 : undefined;
+}
+
+function extractModelId(raw: unknown): string | undefined {
+  const record = asRecord(raw);
+  const modelId = record.modelId ?? record.model;
+  return typeof modelId === "string" && modelId ? modelId : undefined;
 }
 
 export async function executeRunnerTasks(input: ExecuteRunnerTasksInput): Promise<GeneratedMediaAsset[]> {

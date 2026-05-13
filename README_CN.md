@@ -150,14 +150,16 @@ docker compose up --build
 
 ## 媒体生成
 
-OpenDirector 使用 WaveSpeed 进行图片生成，并强制文生图、图生图都走 Nano Banana。
+OpenDirector 使用 WaveSpeed 进行图片生成。角色图和场景底图使用文生图模型；带角色参考图的分镜图必须使用 image-to-image/edit 模型，这样 reference image 才会被模型按预期使用。
 
 ```env
 WAVESPEED_API_KEY="your-wavespeed-key"
 WAVESPEED_IMAGE_MODEL="nano-banana"
-WAVESPEED_IMAGE_TO_IMAGE_MODEL="nano-banana"
+WAVESPEED_IMAGE_TO_IMAGE_MODEL="nano-banana-2-edit"
 EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
 ```
+
+不要把 `WAVESPEED_IMAGE_TO_IMAGE_MODEL` 设置为 `nano-banana`：这个别名会走文生图端点，可能忽略角色参考图。
 
 语音使用本地 Edge TTS，背景音乐使用 `assets/bgm/default/` 中的本地曲目。
 
@@ -311,8 +313,8 @@ apps/web/src/server/agent/
 | 变量 | 默认值 | 描述 |
 |------|--------|------|
 | `WAVESPEED_API_KEY` | — | WaveSpeed API 密钥 |
-| `WAVESPEED_IMAGE_MODEL` | `nano-banana` | 图片生成模型 |
-| `WAVESPEED_IMAGE_TO_IMAGE_MODEL` | `nano-banana` | 参考图生成模型 |
+| `WAVESPEED_IMAGE_MODEL` | `nano-banana` | 角色图和场景底图使用的文生图模型 |
+| `WAVESPEED_IMAGE_TO_IMAGE_MODEL` | `nano-banana-2-edit` | 带角色参考图的分镜图使用的 image-to-image/edit 模型 |
 | `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | 本地 Edge TTS 语音 |
 
 ### LLM
