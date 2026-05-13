@@ -145,60 +145,18 @@ docker compose up --build
 
 ---
 
-## 媒体生成提供商
+## 媒体生成
 
-OpenDirector 通过可插拔架构支持多个媒体生成提供商。在 `.env` 中设置 `MEDIA_PROVIDER` 来选择：
-
-### AiHubMix（推荐）
-
-[AiHubMix](https://aihubmix.com) 是一个统一的 AI API 平台，许多模型有免费额度。在 [aihubmix.com](https://aihubmix.com) 注册获取 API key。
+OpenDirector 使用 WaveSpeed 进行图片生成，并强制文生图、图生图都走 Nano Banana。
 
 ```env
-MEDIA_PROVIDER="aihubmix"
-AIHUBMIX_API_KEY="sk-your-key"
-
-# 图片生成（有免费选项）
-AIHUBMIX_IMAGE_MODEL="gemini-3.1-flash-image-preview-free"
-AIHUBMIX_IMAGE_EDIT_MODEL="gemini-3.1-flash-image-preview-free"
-
-# TTS（免费 Edge TTS）
-AIHUBMIX_TTS_MODEL="edge"
-EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
-
-# BGM（使用数据库中预上传的本地曲目，随机选取）
-```
-
-**免费模型选项：**
-| 能力 | 免费模型 | 说明 |
-|------|----------|------|
-| 图片生成 | `gemini-3.1-flash-image-preview-free` | Gemini 图片生成，有免费额度 |
-| 图片编辑 | `gemini-3.1-flash-image-preview-free` | 同上，用于角色/场景图编辑 |
-| TTS | `edge` | 微软 Edge TTS，完全免费 |
-| BGM | 本地曲目 | 从数据库中随机选取预上传的曲目 |
-| LLM | `gpt-4.1-free` | 用于 recipe/脚本生成 |
-
-### WaveSpeed
-
-[WaveSpeed](https://wavespeed.ai) 提供高质量的 AI 模型用于媒体生成。
-
-```env
-MEDIA_PROVIDER="wavespeed"
 WAVESPEED_API_KEY="your-wavespeed-key"
-
-# 可选：免费替代方案
-WAVESPEED_TTS_MODEL="edge"           # 免费 Edge TTS
-WAVESPEED_MUSIC_MODEL="local"        # 免费数据库本地曲目
+WAVESPEED_IMAGE_MODEL="nano-banana"
+WAVESPEED_IMAGE_TO_IMAGE_MODEL="nano-banana"
+EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
 ```
 
-### 提供商对比
-
-| 特性 | AiHubMix | WaveSpeed |
-|------|----------|-----------|
-| 免费额度 | 有（有限调用次数） | 无 |
-| 图片模型 | 多种（Gemini、GPT 等） | Nano Banana、Seedream |
-| TTS | Edge TTS（免费）或付费模型 | MiniMax 或 Edge TTS |
-| BGM | 数据库本地曲目 | AI 生成或数据库本地曲目 |
-| 设置 | 在 aihubmix.com 注册 | 在 wavespeed.ai 注册 |
+语音使用本地 Edge TTS，背景音乐使用 `assets/bgm/default/` 中的本地曲目。
 
 ---
 
@@ -210,17 +168,9 @@ LLM 用于 recipe 生成、脚本编写和 AI 导演。使用 OpenAI 兼容的 A
 OPENAI_API_KEY="your-key"
 OPENAI_BASE_URL="https://api.openai.com/v1"
 OPENAI_MODEL="gpt-4o-mini"
-OPENAI_RESEARCH_MODEL="gpt-4.1-mini"
-OPENAI_RESPONSES_BASE_URL="https://api.openai.com/v1"
 ```
 
-研究agent 使用 OpenAI Responses API 的 `web_search_preview`。如果你的常规 OpenAI 兼容提供商不支持 `/responses`，请把 `OPENAI_RESPONSES_BASE_URL` 设置为兼容端点。
-
-**支持的提供商：**
-- OpenAI（直接）
-- AiHubMix（`https://aihubmix.com/v1`）
-- Google Gemini（通过 OpenAI 兼容端点）
-- 任何 OpenAI 兼容的 API（OpenRouter、LiteLLM、Ollama 等）
+LLM 使用 OpenAI 或 OpenAI 兼容端点。
 
 ---
 
@@ -357,14 +307,10 @@ apps/web/src/server/agent/
 
 | 变量 | 默认值 | 描述 |
 |------|--------|------|
-| `MEDIA_PROVIDER` | `aihubmix` | 提供商：`aihubmix` 或 `wavespeed` |
-| `AIHUBMIX_API_KEY` | — | AiHubMix API 密钥 |
-| `AIHUBMIX_IMAGE_MODEL` | `gemini-3.1-flash-image-preview-free` | 图片生成模型 |
-| `AIHUBMIX_TTS_MODEL` | `edge` | TTS 模型（`edge` 为免费） |
-| `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Edge TTS 语音 |
 | `WAVESPEED_API_KEY` | — | WaveSpeed API 密钥 |
-| `WAVESPEED_TTS_MODEL` | `edge` | WaveSpeed TTS 模型（`edge` 为免费） |
-| `WAVESPEED_MUSIC_MODEL` | `local` | WaveSpeed BGM 模型（`local` 为数据库本地曲目） |
+| `WAVESPEED_IMAGE_MODEL` | `nano-banana` | 图片生成模型 |
+| `WAVESPEED_IMAGE_TO_IMAGE_MODEL` | `nano-banana` | 参考图生成模型 |
+| `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | 本地 Edge TTS 语音 |
 
 ### LLM
 
@@ -373,8 +319,6 @@ apps/web/src/server/agent/
 | `OPENAI_API_KEY` | — | OpenAI 兼容 API 密钥 |
 | `OPENAI_BASE_URL` | — | API 基础 URL |
 | `OPENAI_MODEL` | `gpt-4o-mini` | 模型名称 |
-| `OPENAI_RESEARCH_MODEL` | `OPENAI_MODEL` | 研究agent 使用的模型 |
-| `OPENAI_RESPONSES_BASE_URL` | `OPENAI_BASE_URL` | `web_search_preview` 使用的 Responses API 基础 URL |
 
 ### 批量模式
 

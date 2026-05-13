@@ -202,7 +202,7 @@ async function fetchOpenAIWebSearch(query: string, goal: string): Promise<Resear
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_RESEARCH_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
         tools: [{ type: "web_search_preview" }],
         tool_choice: "required",
         include: ["web_search_call.action.sources"],

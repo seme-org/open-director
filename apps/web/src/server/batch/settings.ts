@@ -21,7 +21,7 @@ const materialsSettingsSchema = z.object({
 
 const ttsSettingsSchema = z.object({
   provider: z.enum(["edge", "uploaded", "paid"]),
-  server: z.enum(["edge", "azure-tts-v1", "azure-tts-v2", "siliconflow", "gemini-tts"]).catch("edge"),
+  server: z.literal("edge").catch("edge"),
   voice: z.string(),
   rate: z.number().min(0.5).max(2),
   volume: z.number().min(0).max(5),

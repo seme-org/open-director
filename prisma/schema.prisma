@@ -213,7 +213,7 @@ model Voices {
   userId      String?  @map("user_id") @db.VarChar(255)
   gender      String   @default("unknown") @db.VarChar(32)
   detail      String?  @db.VarChar(255)
-  model       String   @default("speech-02-hd") @db.VarChar(128)
+  model       String   @default("edge-tts") @db.VarChar(128)
   parameters  Json?
   provider    String   @default("wavespeed") @db.VarChar(128)
   isPublic    Boolean  @default(false) @map("is_public")

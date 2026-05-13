@@ -24,20 +24,15 @@ vi.mock("@/server/db/prisma", () => ({
 }));
 
 vi.mock("node-edge-tts", () => ({
-  EdgeTTS: vi.fn().mockImplementation(() => ({
-    ttsPromise: vi.fn().mockResolvedValue(undefined),
-  })),
+  EdgeTTS: class {
+    ttsPromise = vi.fn(async (_text: string, filePath: string) => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.writeFile(filePath, Buffer.from("edge audio"));
+    });
+  },
 }));
-
-vi.mock("node:fs/promises", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:fs/promises")>();
-  return {
-    ...actual,
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    readFile: vi.fn().mockResolvedValue(Buffer.from("edge audio")),
-    unlink: vi.fn().mockResolvedValue(undefined),
-  };
-});
 
 vi.mock("@/server/storage/minio", () => ({
   minioStorage: {
@@ -61,7 +56,7 @@ describe("wavespeed runner integration", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    process.env = { ...originalEnv, MEDIA_PROVIDER: "wavespeed", WAVESPEED_API_KEY: "test-key", WAVESPEED_POLL_INTERVAL_MS: "1", WAVESPEED_TIMEOUT_MS: "1000" };
+    process.env = { ...originalEnv, WAVESPEED_API_KEY: "test-key", WAVESPEED_POLL_INTERVAL_MS: "1", WAVESPEED_TIMEOUT_MS: "1000" };
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-05-04T00:00:00.000Z"));
   });
@@ -103,7 +98,6 @@ describe("wavespeed runner integration", () => {
     });
     expect(portraitImage.payload).not.toHaveProperty("size");
 
-    process.env.WAVESPEED_IMAGE_MODEL = "nano-banana-pro";
     expect(buildWaveSpeedPayload({
       id: "image-2",
       tool: "create_location",
@@ -111,7 +105,6 @@ describe("wavespeed runner integration", () => {
       prompt: "premium still",
       status: "planned",
     }).modelId).toBe("google/nano-banana/text-to-image");
-    delete process.env.WAVESPEED_IMAGE_MODEL;
 
     const imageEdit = buildWaveSpeedPayload(
       {

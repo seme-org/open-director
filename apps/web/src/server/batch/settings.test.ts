@@ -26,7 +26,7 @@ describe("batch settings", () => {
         transition: { enabled: true, style: "fade" },
       },
       materials: { source: "local", localDirectory: "assets/custom", searchMode: "script" },
-      tts: { provider: "edge", server: "azure-tts-v2", voice: "zh-CN-YunxiNeural", rate: 1.2, volume: 0.8 },
+      tts: { provider: "edge", server: "edge", voice: "zh-CN-YunxiNeural", rate: 1.2, volume: 0.8 },
       bgm: { source: "first", directory: "assets/bgm/default", file: "", volume: 0.5 },
       subtitle: {
         enabled: true,
@@ -43,7 +43,7 @@ describe("batch settings", () => {
     });
 
     expect(settings.video.transition).toEqual({ enabled: true, style: "fade" });
-    expect(settings.tts.server).toBe("azure-tts-v2");
+    expect(settings.tts.server).toBe("edge");
     expect(settings.bgm.source).toBe("random");
     expect(settings.subtitle.customPosition).toBe(72);
     expect(settings.subtitle.style).toBe("bold-caption");
@@ -73,7 +73,7 @@ describe("batch settings", () => {
       source: "local",
       uploadedUrls: ["https://cdn.test/a.mp4"],
     });
-    expect(normalizeBatchSettings({ materials: { source: "local-pexels" } }).materials.source).toBe("local");
+    expect(normalizeBatchSettings({ materials: { source: "local-pexels" } }).materials.source).toBe("pexels");
   });
 
   it("keeps subtitle animation settings", () => {

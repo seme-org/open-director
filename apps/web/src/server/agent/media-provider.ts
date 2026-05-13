@@ -149,7 +149,7 @@ async function executeSingleRunnerTask(input: ExecuteRunnerTasksInput & {
         title: `${input.task.sceneTitle} - ${input.task.tool}`,
         url: result.outputs[0],
         metadata: toJson({
-          provider: env("MEDIA_PROVIDER", "aihubmix"),
+          provider: "wavespeed",
           task: input.task,
           outputs: result.outputs,
           ...(extractDuration(result.raw) ? { duration: extractDuration(result.raw) } : {}),

@@ -143,60 +143,18 @@ Then open **http://localhost:3000**.
 
 ---
 
-## Media Generation Providers
+## Media Generation
 
-OpenDirector supports multiple media generation providers through a pluggable architecture. Set `MEDIA_PROVIDER` in `.env` to choose:
-
-### AiHubMix (Recommended)
-
-[AiHubMix](https://aihubmix.com) is a unified AI API platform with free tiers for many models. Register and get an API key at [aihubmix.com](https://aihubmix.com).
+OpenDirector uses WaveSpeed for image generation, pinned to Nano Banana for both text-to-image and image-to-image tasks.
 
 ```env
-MEDIA_PROVIDER="aihubmix"
-AIHUBMIX_API_KEY="sk-your-key"
-
-# Image generation (free options available)
-AIHUBMIX_IMAGE_MODEL="gemini-3.1-flash-image-preview-free"
-AIHUBMIX_IMAGE_EDIT_MODEL="gemini-3.1-flash-image-preview-free"
-
-# TTS (free via Edge TTS)
-AIHUBMIX_TTS_MODEL="edge"
-EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
-
-# BGM (uses pre-uploaded tracks from database, randomly selected)
-```
-
-**Free model options:**
-| Capability | Free Model | Notes |
-|-----------|-----------|-------|
-| Image generation | `gemini-3.1-flash-image-preview-free` | Gemini image generation, has free tier |
-| Image editing | `gemini-3.1-flash-image-preview-free` | Same model, for character/scene editing |
-| TTS | `edge` | Microsoft Edge TTS, completely free |
-| BGM | Local tracks | Randomly selected from pre-uploaded database tracks |
-| LLM | `gpt-4.1-free` | For recipe/script generation |
-
-### WaveSpeed
-
-[WaveSpeed](https://wavespeed.ai) provides high-quality AI models for media generation.
-
-```env
-MEDIA_PROVIDER="wavespeed"
 WAVESPEED_API_KEY="your-wavespeed-key"
-
-# Optional: free alternatives
-WAVESPEED_TTS_MODEL="edge"           # Free Edge TTS
-WAVESPEED_MUSIC_MODEL="local"        # Free local tracks from database
+WAVESPEED_IMAGE_MODEL="nano-banana"
+WAVESPEED_IMAGE_TO_IMAGE_MODEL="nano-banana"
+EDGE_TTS_VOICE="zh-CN-XiaoxiaoNeural"
 ```
 
-### Provider comparison
-
-| Feature | AiHubMix | WaveSpeed |
-|---------|----------|-----------|
-| Free tier | Yes (limited calls) | No |
-| Image models | Multiple (Gemini, GPT, etc.) | Nano Banana, Seedream |
-| TTS | Edge TTS (free) or paid models | MiniMax or Edge TTS |
-| BGM | Local tracks (database) | AI-generated or local tracks |
-| Setup | Register at aihubmix.com | Register at wavespeed.ai |
+Speech uses local Edge TTS. Background music uses local tracks from `assets/bgm/default/`.
 
 ---
 
@@ -208,17 +166,9 @@ The LLM is used for recipe generation, script writing, and the AI director. It u
 OPENAI_API_KEY="your-key"
 OPENAI_BASE_URL="https://api.openai.com/v1"
 OPENAI_MODEL="gpt-4o-mini"
-OPENAI_RESEARCH_MODEL="gpt-4.1-mini"
-OPENAI_RESPONSES_BASE_URL="https://api.openai.com/v1"
 ```
 
-The Research Agent uses the OpenAI Responses API with `web_search_preview`. If your regular OpenAI-compatible provider does not support `/responses`, set `OPENAI_RESPONSES_BASE_URL` to a compatible endpoint.
-
-**Supported providers:**
-- OpenAI (direct)
-- AiHubMix (`https://aihubmix.com/v1`)
-- Google Gemini (via OpenAI-compatible endpoint)
-- Any OpenAI-compatible API (OpenRouter, LiteLLM, Ollama, etc.)
+Use OpenAI directly or an OpenAI-compatible endpoint for the LLM.
 
 ---
 
@@ -355,14 +305,10 @@ apps/web/src/server/agent/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MEDIA_PROVIDER` | `aihubmix` | Provider: `aihubmix` or `wavespeed` |
-| `AIHUBMIX_API_KEY` | — | AiHubMix API key |
-| `AIHUBMIX_IMAGE_MODEL` | `gemini-3.1-flash-image-preview-free` | Image generation model |
-| `AIHUBMIX_TTS_MODEL` | `edge` | TTS model (`edge` for free) |
-| `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Edge TTS voice |
 | `WAVESPEED_API_KEY` | — | WaveSpeed API key |
-| `WAVESPEED_TTS_MODEL` | `edge` | WaveSpeed TTS model (`edge` for free) |
-| `WAVESPEED_MUSIC_MODEL` | `local` | WaveSpeed BGM model (`local` for database tracks) |
+| `WAVESPEED_IMAGE_MODEL` | `nano-banana` | Image generation model |
+| `WAVESPEED_IMAGE_TO_IMAGE_MODEL` | `nano-banana` | Reference image generation model |
+| `EDGE_TTS_VOICE` | `zh-CN-XiaoxiaoNeural` | Local Edge TTS voice |
 
 ### LLM
 
@@ -371,8 +317,6 @@ apps/web/src/server/agent/
 | `OPENAI_API_KEY` | — | OpenAI-compatible API key |
 | `OPENAI_BASE_URL` | — | API base URL |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Model name |
-| `OPENAI_RESEARCH_MODEL` | `OPENAI_MODEL` | Model used by the Research Agent |
-| `OPENAI_RESPONSES_BASE_URL` | `OPENAI_BASE_URL` | Responses API base URL for `web_search_preview` |
 
 ### Batch mode
 

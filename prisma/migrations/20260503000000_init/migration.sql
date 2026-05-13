@@ -142,7 +142,7 @@ CREATE TABLE `voices` (
   `user_id` VARCHAR(255) NULL,
   `gender` VARCHAR(32) NOT NULL DEFAULT 'unknown',
   `detail` VARCHAR(255) NULL,
-  `model` VARCHAR(128) NOT NULL DEFAULT 'speech-02-hd',
+  `model` VARCHAR(128) NOT NULL DEFAULT 'edge-tts',
   `parameters` JSON NULL,
   `provider` VARCHAR(128) NOT NULL DEFAULT 'wavespeed',
   `is_public` TINYINT(1) NOT NULL DEFAULT 0,
