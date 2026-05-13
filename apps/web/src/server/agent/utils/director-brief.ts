@@ -96,6 +96,77 @@ function prefillMustInclude(prompt: string) {
   return cleaned || prompt.slice(0, 60);
 }
 
+function includesAny(value: string, patterns: RegExp[]) {
+  return patterns.some((pattern) => pattern.test(value));
+}
+
+function hasExplicitStyleRequest(prompt: string, style: PublicArtStyle) {
+  const lowerPrompt = prompt.toLowerCase();
+  return (
+    lowerPrompt.includes(style.name.toLowerCase()) ||
+    style.keywords.some((keyword) => lowerPrompt.includes(keyword.toLowerCase()))
+  );
+}
+
+function scoreStyleForPrompt(prompt: string, style: PublicArtStyle) {
+  const lowerPrompt = prompt.toLowerCase();
+  const styleText = [
+    style.name,
+    style.category,
+    style.promptPrefix,
+    style.description,
+    ...style.keywords,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  let score = 0;
+
+  if (includesAny(prompt, [/恐怖|惊悚|悬疑|黑暗|诡异|阴森/, /horror|scary|thriller|suspense|dark|eerie/i])) {
+    if (/tension|shadow|moody|noir|monochrome|surreal|dark|contrast/.test(styleText)) score += 6;
+    if (/storybook|children|cute|friendly|warm|charming|gentle/.test(styleText)) score -= 6;
+  }
+
+  if (includesAny(prompt, [/产品|电商|广告|营销|品牌|发布/, /product|ecommerce|ad|marketing|brand|launch|promo/i])) {
+    if (/commercial|product|ecommerce|ad|promo|brand|startup|luxury/.test(styleText)) score += 6;
+    if (/storybook|children|cute|fantasy|anime/.test(styleText)) score -= 4;
+  }
+
+  if (includesAny(prompt, [/儿童|孩子|小朋友|亲子|寓言|童话/, /children|kids|storybook|fairy tale|family/i])) {
+    if (/storybook|children|warm|cute|friendly|charming|gentle|fantasy/.test(styleText)) score += 5;
+  }
+
+  if (includesAny(prompt, [/纪录片|真实|纪实|访谈/, /documentary|realistic|interview|authentic/i])) {
+    if (/documentary|realism|realistic|authentic|natural/.test(styleText)) score += 6;
+    if (/storybook|cute|fantasy|surreal|anime/.test(styleText)) score -= 4;
+  }
+
+  if (style.name.toLowerCase() === lowerPrompt.trim()) score += 10;
+
+  return score;
+}
+
+function selectArtStyleForBrief(
+  prompt: string,
+  artStyleCatalog: PublicArtStyle[],
+  draftArtStyle: string | null | undefined,
+) {
+  const selected = resolveArtStyleFromCatalog(artStyleCatalog, draftArtStyle);
+  if (hasExplicitStyleRequest(prompt, selected)) return selected;
+
+  const scored = artStyleCatalog
+    .map((style) => ({ style, score: scoreStyleForPrompt(prompt, style) }))
+    .sort((a, b) => b.score - a.score);
+  const best = scored[0];
+  const selectedScore = scoreStyleForPrompt(prompt, selected);
+
+  if (best && best.score > 0 && best.score >= selectedScore + 4) {
+    return best.style;
+  }
+
+  return selected;
+}
+
 export function buildDirectorBrief(
   prompt: string,
   artStyleCatalog: PublicArtStyle[] = [],
@@ -103,7 +174,7 @@ export function buildDirectorBrief(
 ) {
   const language = draft?.language ?? defaultLanguageForPrompt(prompt);
   const selectedArtStyle = artStyleCatalog.length
-    ? resolveArtStyleFromCatalog(artStyleCatalog, draft?.art_style).name
+    ? selectArtStyleForBrief(prompt, artStyleCatalog, draft?.art_style).name
     : draft?.art_style;
   const artStyleOptions = artStyleCatalog.map((style, index) => ({
     value: style.name,

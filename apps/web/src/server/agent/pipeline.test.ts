@@ -381,6 +381,60 @@ describe("director pipeline runner planning", () => {
     ]);
   });
 
+  it("does not keep a mismatched storybook art style for horror briefs", () => {
+    const brief = buildDirectorBrief(
+      "我想做一个恐怖故事",
+      [
+        {
+          id: "as_1014",
+          name: "Storybook Wonder",
+          category: "illustration",
+          promptPrefix: "storybook illustration",
+          description: "Warm and charming illustrated look for gentle storytelling",
+          keywords: ["storybook", "children", "warm", "cute"],
+          imageUrl: "/styles/storybook.jpg",
+        },
+        {
+          id: "as_1005",
+          name: "Monochrome Tension",
+          category: "cinematic",
+          promptPrefix: "monochrome cinematic style",
+          description: "Black and white visuals with strong contrast and dramatic shadows",
+          keywords: ["black-white", "contrast", "shadow", "moody"],
+          imageUrl: "/styles/monochrome.jpg",
+        },
+      ],
+      {
+        project_name: "恐怖故事",
+        intent: "story",
+        audience: "悬疑恐怖观众",
+        must_include: "紧张、黑暗、惊悚",
+        language: "zh-CN",
+        aspect_ratio: "9:16",
+        art_style: "Storybook Wonder",
+        duration: "30s",
+      },
+    );
+
+    expect(
+      brief.exam.single_choice.find((choice) => choice.key === "art_style")
+        ?.options,
+    ).toEqual([
+      {
+        value: "Storybook Wonder",
+        label: "Storybook Wonder",
+        default: 0,
+        imageUrl: "/styles/storybook.jpg",
+      },
+      {
+        value: "Monochrome Tension",
+        label: "Monochrome Tension",
+        default: 1,
+        imageUrl: "/styles/monochrome.jpg",
+      },
+    ]);
+  });
+
   it("offers the chat-agent language set in the director brief", () => {
     const brief = buildDirectorBrief("Create a launch video");
     const languageChoice = brief.exam.single_choice.find(
