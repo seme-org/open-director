@@ -40,7 +40,7 @@ Just `docker compose up` and start creating.
       <video src="https://github.com/user-attachments/assets/2fb8f97e-e3cc-4ce7-ae4d-7dced1689197" controls muted playsinline width="100%"></video>
     </td>
     <td width="50%">
-      <video src="https://github.com/user-attachments/assets/d105ca4f-7d82-4375-9f9c-d720acf0c300" controls muted playsinline width="100%"></video>
+      <video src="https://github.com/user-attachments/assets/645c9f16-c64f-4e1c-a766-0b03b9837d9b" controls muted playsinline width="100%"></video>
     </td>
   </tr>
 </table>
