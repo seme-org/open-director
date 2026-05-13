@@ -235,6 +235,60 @@ function mediaShotPromptByShotId(recipe: DirectorRecipe) {
   return new Map(recipe.media.shots.map((shot) => [shot.shotId, shot]));
 }
 
+function characterTaskId(index: number) {
+  return `character-${index + 1}`;
+}
+
+function mentionedCharacterNames(
+  shot: Record<string, unknown>,
+  prompt: string,
+  characters: DirectorRecipe["characters"],
+) {
+  const names = new Set<string>();
+  const shotCharacters = Array.isArray(shot.characters) ? shot.characters : [];
+  for (const value of shotCharacters) {
+    const name = textValue(value).trim();
+    if (name) names.add(name);
+  }
+
+  for (const character of characters) {
+    const name = character.name.trim();
+    if (!name) continue;
+    if (prompt.includes(`@${name}`)) names.add(name);
+  }
+
+  return names;
+}
+
+function referencesForShot(
+  shot: Record<string, unknown>,
+  prompt: string,
+  characters: DirectorRecipe["characters"],
+) {
+  const names = mentionedCharacterNames(shot, prompt, characters);
+  const referenceUrls: string[] = [];
+  const dependsOn: string[] = [];
+
+  characters.forEach((character, index) => {
+    if (!names.has(character.name.trim())) return;
+    if (isValidHttpUrl(character.imageUrl)) {
+      referenceUrls.push(character.imageUrl);
+    } else {
+      dependsOn.push(characterTaskId(index));
+    }
+  });
+
+  return { referenceUrls, dependsOn };
+}
+
+function fallbackSubjectReference(characters: DirectorRecipe["characters"]) {
+  const characterWithImage = characters.find((character) => isValidHttpUrl(character.imageUrl));
+  if (characterWithImage?.imageUrl) {
+    return { referenceUrls: [characterWithImage.imageUrl], dependsOn: [] };
+  }
+  return characters.length ? { referenceUrls: [], dependsOn: [characterTaskId(0)] } : { referenceUrls: [], dependsOn: [] };
+}
+
 export function planCreationPreparationTasks(
     recipe: DirectorRecipe,
   ): RunnerTask[] {
@@ -242,16 +296,6 @@ export function planCreationPreparationTasks(
     const characters = filterReusableVisualSubjects(recipe.characters).filter(
       (character) => character.type === "character",
     );
-  const subjectReferenceUrl =
-    characters.find((character) => character.imageUrl)?.imageUrl ||
-    recipe.artStyle.imageUrl ||
-    undefined;
-  const validSubjectReferenceUrl = isValidHttpUrl(subjectReferenceUrl) ? subjectReferenceUrl : undefined;
-  const subjectDependency = validSubjectReferenceUrl
-    ? undefined
-    : characters.some((character) => !character.imageUrl)
-      ? "character-1"
-      : undefined;
   const mediaByShotId = mediaShotPromptByShotId(recipe);
 
   return buildStoryboardBlocks(recipe)
@@ -259,16 +303,26 @@ export function planCreationPreparationTasks(
       const shot = asStateRecord(block.metadata.shot);
       const sceneIndex = Number(block.metadata.sceneIndex || 1);
       const mediaPrompt = mediaByShotId.get(textValue(shot.shotId));
+      const prompt = (mediaPrompt?.imageToImagePromptText || block.visualPrompt).trim();
+      const exactSubjectReferences = referencesForShot(shot, prompt, characters);
+      const subjectReferences = exactSubjectReferences.referenceUrls.length || exactSubjectReferences.dependsOn.length
+        ? exactSubjectReferences
+        : fallbackSubjectReference(characters);
+      const fallbackReferenceUrl = isValidHttpUrl(recipe.artStyle.imageUrl)
+        ? recipe.artStyle.imageUrl
+        : undefined;
       const dependsOn = [
-        subjectDependency,
+        ...subjectReferences.dependsOn,
         `scene-${sceneIndex}-image`,
       ].filter((value): value is string => Boolean(value));
-      const referenceUrls = [validSubjectReferenceUrl].filter((value): value is string => Boolean(value));
+      const referenceUrls = subjectReferences.referenceUrls.length
+        ? subjectReferences.referenceUrls
+        : [fallbackReferenceUrl].filter((value): value is string => Boolean(value));
         return {
           id: `shot-${index + 1}-image`,
           tool: "image_to_image",
           sceneTitle: block.title,
-          prompt: (mediaPrompt?.imageToImagePromptText || block.visualPrompt).trim(),
+          prompt,
           status: "planned",
           dependsOn: dependsOn.length ? dependsOn : undefined,
           referenceUrls: referenceUrls.length ? referenceUrls : undefined,

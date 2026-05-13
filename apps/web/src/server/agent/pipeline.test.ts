@@ -1208,6 +1208,108 @@ describe("director pipeline runner planning", () => {
     ).toEqual([...blocks.map((block) => block.title), "背景音乐"]);
   });
 
+  it("uses each shot's referenced characters for image-to-image dependencies", () => {
+    const recipe: DirectorRecipe = {
+      intent: "story",
+      title: "奥特曼搞笑打怪兽",
+      summary: "奥特曼和怪兽的轻松战斗。",
+      fullStory: "怪兽出现。奥特曼登场。路人大笑。",
+      agentBriefs: emptyAgentBriefs,
+      highlights: [],
+      audience: "kids",
+      tone: "funny",
+      language: "zh-CN",
+      artStyle: {
+        name: "Expressive Adventure CG",
+        promptPrefix: "expressive adventure CG",
+        description: "Bold animated CG",
+        keywords: [],
+        imageUrl: null,
+        reasoning: null,
+        detail: "Bold animated CG",
+        imagePrompt: "expressive adventure CG",
+      },
+      characters: [
+        { name: "奥特曼", description: "hero", promptText: "red silver hero", type: "character", gender: "unknown", voiceId: null, voice: null, imageUrl: null },
+        { name: "怪兽", description: "monster", promptText: "green monster", type: "character", gender: "unknown", voiceId: null, voice: null, imageUrl: null },
+        { name: "路人", description: "crowd", promptText: "laughing people", type: "character", gender: "unknown", voiceId: null, voice: null, imageUrl: null },
+      ],
+      locations: [],
+      scenes: [
+        {
+          title: "怪兽来袭",
+          desc: null,
+          script: "怪兽出现。",
+          visualPrompt: "城市街道",
+          audioPrompt: "紧张音乐",
+          duration: 9,
+          shots: [
+            {
+              shotId: "shot1",
+              title: "怪兽破坏城市",
+              description: "怪兽在城市中。",
+              characters: ["怪兽"],
+              visualElements: "怪兽破坏城市",
+              dialogue: [{ speaker: "旁白", text: "怪兽来了。" }],
+            },
+            {
+              shotId: "shot2",
+              title: "奥特曼到达现场",
+              description: "奥特曼登场。",
+              characters: ["奥特曼"],
+              visualElements: "奥特曼飞来",
+              dialogue: [{ speaker: "奥特曼", text: "我来了。" }],
+            },
+            {
+              shotId: "shot3",
+              title: "路人笑声",
+              description: "路人围观。",
+              characters: ["路人"],
+              visualElements: "路人大笑",
+              dialogue: [{ speaker: "路人", text: "太搞笑了。" }],
+            },
+            {
+              shotId: "shot4",
+              title: "泡泡包裹怪兽",
+              description: "奥特曼和怪兽同框。",
+              characters: ["奥特曼", "怪兽"],
+              visualElements: "奥特曼用泡泡包住怪兽",
+              dialogue: [{ speaker: "旁白", text: "泡泡出现。" }],
+            },
+          ],
+        },
+      ],
+      bgm: {
+        createMusicParams: {
+          tags: ["funny"],
+          title: "funny bgm",
+          promptText: "funny",
+          makeInstrumental: true,
+          duration: 30,
+        },
+        reasoning: null,
+        style: "funny",
+        prompt: "funny",
+      },
+      media: {
+        shots: [
+          { shotId: "shot1", sceneTitle: "怪兽破坏城市", imageToImagePromptText: "SUBJECTS: @怪兽 front and center", imageToVideoPromptText: "monster moves" },
+          { shotId: "shot2", sceneTitle: "奥特曼到达现场", imageToImagePromptText: "SUBJECTS: @奥特曼 flying in", imageToVideoPromptText: "hero flies" },
+          { shotId: "shot3", sceneTitle: "路人笑声", imageToImagePromptText: "SUBJECTS: @路人 laughing", imageToVideoPromptText: "crowd laughs" },
+          { shotId: "shot4", sceneTitle: "泡泡包裹怪兽", imageToImagePromptText: "SUBJECTS: @怪兽 in bubble, @奥特曼 standing nearby", imageToVideoPromptText: "bubble expands" },
+        ],
+      },
+      mediaPlan: [],
+    };
+
+    expect(planCreationPreparationTasks(recipe)).toEqual([
+      expect.objectContaining({ id: "shot-1-image", dependsOn: ["character-2", "scene-1-image"] }),
+      expect.objectContaining({ id: "shot-2-image", dependsOn: ["character-1", "scene-1-image"] }),
+      expect.objectContaining({ id: "shot-3-image", dependsOn: ["character-3", "scene-1-image"] }),
+      expect.objectContaining({ id: "shot-4-image", dependsOn: ["character-1", "character-2", "scene-1-image"] }),
+    ]);
+  });
+
   it("injects aspectRatio from directorBrief into recipe for runner tasks", () => {
     const recipe: DirectorRecipe = {
       intent: "story",
