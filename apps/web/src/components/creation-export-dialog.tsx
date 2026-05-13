@@ -42,6 +42,9 @@ const labels = {
   errorDuringExport: "Error during export.",
   resolution: "Resolution",
   generateTitle: "Generate title",
+  outputContent: "Output content",
+  showTitle: "Title",
+  showSubtitles: "Subtitles",
   generateTitleAnimation: "Title animation",
   generateSubtitles: "Generate subtitles",
   generateSubtitleAnimation: "Subtitle animation",
@@ -132,6 +135,26 @@ export function CreationExportDialog({
     }
   };
 
+  const setTitleEnabled = (enabled: boolean) => {
+    setPreset((prev) => ({
+      ...prev,
+      title: {
+        enabled,
+        style: prev.title.style ?? TITLE_STYLES[0]?.value,
+      },
+    }));
+  };
+
+  const setSubtitleEnabled = (enabled: boolean) => {
+    setPreset((prev) => ({
+      ...prev,
+      subtitle: {
+        enabled,
+        style: prev.subtitle.style ?? SUBTITLE_STYLES[0]?.value,
+      },
+    }));
+  };
+
   const isExporting = exportState.status === "exporting";
   const showPreviewPlaceholder = exportState.status === "idle";
   const exportProgressLabel = formatExportProgressLabel(exportState.progress);
@@ -185,50 +208,117 @@ export function CreationExportDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
       <DialogContent
-        className="w-[95vw] max-w-[95vw] sm:max-w-[1000px] lg:max-w-[1200px] max-h-[90vh] overflow-auto md:overflow-hidden bg-zinc-900 border-white/20 text-slate-200"
+        className="w-[95vw] max-w-[95vw] overflow-hidden border-white/10 bg-[#111318]/95 p-0 text-slate-200 shadow-[0_28px_120px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:max-w-[1000px] lg:max-w-[1200px]"
         hideclose={true}
       >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-slate-100">
-            {getStatusIcon()}
-            {labels.exportFullVideo}
-          </DialogTitle>
-          <DialogDescription className="text-slate-400">
-            {exportState.status === "idle" && labels.exportFullVideoDescription}
-            {exportState.status === "exporting" && labels.generatingVideoPleaseWait}
-            {exportState.status === "success" && labels.exportSuccess}
-            {exportState.status === "error" && labels.errorDuringExport}
-          </DialogDescription>
-        </DialogHeader>
+        <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(20,184,166,0.12),rgba(168,85,247,0.1)_52%,rgba(251,191,36,0.08))] px-5 py-4 sm:px-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-slate-100">
+              <span className="grid size-10 place-items-center rounded-md border border-cyan-300/25 bg-cyan-300/10 text-cyan-100">
+                {getStatusIcon()}
+              </span>
+              <span>{labels.exportFullVideo}</span>
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {exportState.status === "idle" && labels.exportFullVideoDescription}
+              {exportState.status === "exporting" && labels.generatingVideoPleaseWait}
+              {exportState.status === "success" && labels.exportSuccess}
+              {exportState.status === "error" && labels.errorDuringExport}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="flex flex-col lg:flex-row gap-4 min-h-0">
-          <div className="w-full lg:w-14 shrink-0">
-            <div className="flex lg:sticky lg:top-4 flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => scrollToSection(item.id)}
+                  title={item.label}
+                  aria-label={item.label}
+                  className={cn(
+                    "flex h-10 min-w-10 shrink-0 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold transition-all",
+                    activeSection === item.id
+                      ? "border-cyan-300/45 bg-cyan-300/15 text-cyan-50 shadow-[0_0_0_1px_rgba(103,232,249,0.16),0_12px_28px_rgba(8,145,178,0.2)]"
+                      : "border-white/10 bg-black/20 text-slate-400 hover:border-white/20 hover:bg-white/[0.07] hover:text-slate-100",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden lg:inline">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grid max-h-[calc(90vh-112px)] min-h-0 gap-4 overflow-auto p-4 md:overflow-hidden lg:grid-cols-[minmax(0,1fr)_360px] lg:p-5">
+          <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-3">
+            <div className="min-h-0 overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-4 pr-3 shadow-inner shadow-black/20" ref={containerRef}>
+              <div className="mb-6 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                <div className="mb-3 text-sm font-medium text-zinc-100">{labels.outputContent}</div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
-                    key={item.id}
                     type="button"
-                    onClick={() => scrollToSection(item.id)}
-                    title={item.label}
-                    aria-label={item.label}
+                    onClick={() => setTitleEnabled(!preset.title.enabled)}
+                    aria-pressed={preset.title.enabled}
                     className={cn(
-                      "h-8 w-8 md:h-10 md:w-10 rounded-md border transition-all flex items-center justify-center shrink-0",
-                      activeSection === item.id
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20 border-transparent"
-                        : "bg-transparent border-transparent text-zinc-400 hover:bg-white/10 hover:text-zinc-100",
+                      "flex h-11 items-center justify-between rounded-md border px-3 text-sm font-semibold transition",
+                      preset.title.enabled
+                        ? "border-cyan-300/60 bg-cyan-300/12 text-cyan-50 shadow-[0_0_0_1px_rgba(103,232,249,0.16)]"
+                        : "border-white/10 bg-black/20 text-slate-400 hover:border-white/20 hover:bg-white/[0.06] hover:text-slate-100",
                     )}
                   >
-                    <Icon className="h-5 w-5" />
+                    <span className="flex items-center gap-2">
+                      <Type className="h-4 w-4" />
+                      {labels.showTitle}
+                    </span>
+                    <span
+                      className={cn(
+                        "h-5 w-9 rounded-full border p-0.5 transition",
+                        preset.title.enabled ? "border-cyan-300/50 bg-cyan-300/30" : "border-white/10 bg-white/5",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "block size-3.5 rounded-full transition",
+                          preset.title.enabled ? "translate-x-4 bg-cyan-100" : "bg-slate-500",
+                        )}
+                      />
+                    </span>
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubtitleEnabled(!preset.subtitle.enabled)}
+                    aria-pressed={preset.subtitle.enabled}
+                    className={cn(
+                      "flex h-11 items-center justify-between rounded-md border px-3 text-sm font-semibold transition",
+                      preset.subtitle.enabled
+                        ? "border-cyan-300/60 bg-cyan-300/12 text-cyan-50 shadow-[0_0_0_1px_rgba(103,232,249,0.16)]"
+                        : "border-white/10 bg-black/20 text-slate-400 hover:border-white/20 hover:bg-white/[0.06] hover:text-slate-100",
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <List className="h-4 w-4" />
+                      {labels.showSubtitles}
+                    </span>
+                    <span
+                      className={cn(
+                        "h-5 w-9 rounded-full border p-0.5 transition",
+                        preset.subtitle.enabled ? "border-cyan-300/50 bg-cyan-300/30" : "border-white/10 bg-white/5",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "block size-3.5 rounded-full transition",
+                          preset.subtitle.enabled ? "translate-x-4 bg-cyan-100" : "bg-slate-500",
+                        )}
+                      />
+                    </span>
+                  </button>
+                </div>
+              </div>
 
-          <div className="flex-1 grid grid-rows-[minmax(0,1fr)_auto] gap-3 min-h-0 max-h-[60vh] lg:max-h-[70vh]">
-            <div className="overflow-y-auto pr-1 sm:pr-2 min-h-0" ref={containerRef}>
               <div ref={(el) => { sectionRefs.current.resolution = el; }} data-id="resolution" className="space-y-2 mb-6">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-zinc-100">{labels.resolution}</div>
@@ -249,13 +339,13 @@ export function CreationExportDialog({
                         className={cn(
                           "relative h-9 rounded-md border px-2 text-sm font-medium transition-all flex items-center justify-center gap-2",
                           selected
-                            ? "bg-blue-600 border-blue-600 text-white ring-2 ring-blue-600/30"
-                            : "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white",
+                            ? "border-cyan-300/70 bg-cyan-300/15 text-cyan-50 shadow-[0_0_0_1px_rgba(103,232,249,0.2)]"
+                            : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/35 hover:bg-cyan-300/10 hover:text-cyan-50",
                           locked && "opacity-50",
                         )}
                       >
                         <span>{v}p</span>
-                        {selected && <CheckCircle className="w-4 h-4 text-white absolute -top-2 -right-2 bg-blue-600 rounded-full" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-cyan-950 absolute -top-2 -right-2 rounded-full bg-cyan-300" />}
                         {locked && (
                           <span className="absolute -top-2 -right-2">
                             <Badge variant="secondary" className="cursor-pointer border border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20">
@@ -276,8 +366,8 @@ export function CreationExportDialog({
                     className={cn(
                       "relative aspect-[2.5/1] rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden flex items-center justify-center",
                       !preset.title.enabled
-                        ? "ring-2 ring-rose-500 border-transparent bg-rose-950/30 text-rose-400"
-                        : "bg-zinc-800 border-zinc-700 hover:border-rose-500 hover:scale-105 text-zinc-400",
+                        ? "border-rose-300/60 bg-rose-500/10 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.24)]"
+                        : "border-white/10 bg-white/[0.035] text-slate-500 hover:border-rose-300/35 hover:bg-rose-500/10 hover:text-rose-200",
                     )}
                     onClick={() => {
                       setPreset((prev) => ({ ...prev, title: { enabled: false, style: undefined } }));
@@ -285,7 +375,7 @@ export function CreationExportDialog({
                     }}
                   >
                     <Ban className="h-5 w-5" />
-                    {!preset.title.enabled && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-rose-500 rounded-full" />}
+                    {!preset.title.enabled && <CheckCircle className="w-4 h-4 text-rose-100 absolute top-1 right-1 rounded-full bg-rose-500" />}
                   </div>
                   {TITLE_STYLES.map((style) => {
                     let styleObj: Record<string, any> = {};
@@ -298,7 +388,9 @@ export function CreationExportDialog({
                         key={style.value}
                         className={cn(
                           "relative aspect-[2.5/1] rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden group flex items-center justify-center",
-                          selected ? "ring-2 ring-blue-500 border-transparent bg-zinc-800" : "bg-zinc-800 border-zinc-700 hover:border-blue-500 hover:scale-105",
+                          selected
+                            ? "border-cyan-300/70 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(103,232,249,0.22),0_16px_34px_rgba(8,145,178,0.16)]"
+                            : "border-white/10 bg-white/[0.035] hover:border-cyan-300/40 hover:bg-cyan-300/10",
                         )}
                         style={{ backgroundColor: styleObj.backgroundColor || "transparent" }}
                         onClick={() => {
@@ -306,7 +398,7 @@ export function CreationExportDialog({
                           setAdvancedParam({ titleStyle: style.value, isGenerateTitle: "yes" });
                         }}
                       >
-                        {selected && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 z-20 bg-blue-500 rounded-full" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-cyan-950 absolute top-1 right-1 z-20 rounded-full bg-cyan-300" />}
                         <span
                           style={{
                             fontFamily: styleObj.fontFamily ? String(styleObj.fontFamily).split(".")[0] : "sans-serif",
@@ -338,8 +430,8 @@ export function CreationExportDialog({
                     className={cn(
                       "relative p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 flex items-center justify-center",
                       !preset.titleAnimation.enabled
-                        ? "ring-2 ring-rose-500 border-transparent bg-rose-950/30 text-rose-400"
-                        : "bg-zinc-800 border-zinc-700 hover:border-rose-500 hover:scale-105 text-zinc-400",
+                        ? "border-rose-300/60 bg-rose-500/10 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.24)]"
+                        : "border-white/10 bg-white/[0.035] text-slate-500 hover:border-rose-300/35 hover:bg-rose-500/10 hover:text-rose-200",
                     )}
                     onClick={() => {
                       setPreset((prev) => ({ ...prev, titleAnimation: { enabled: false, name: undefined } }));
@@ -347,7 +439,7 @@ export function CreationExportDialog({
                     }}
                   >
                     <Ban className="h-5 w-5" />
-                    {!preset.titleAnimation.enabled && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-rose-500 rounded-full" />}
+                    {!preset.titleAnimation.enabled && <CheckCircle className="w-4 h-4 text-rose-100 absolute top-1 right-1 rounded-full bg-rose-500" />}
                   </div>
                   {ANIMATION_EFFECTS.title.map((anim) => {
                     const selected = preset.titleAnimation.enabled && preset.titleAnimation.name === anim.name;
@@ -356,14 +448,16 @@ export function CreationExportDialog({
                         key={anim.name}
                         className={cn(
                           "relative p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center overflow-hidden",
-                          selected ? "ring-2 ring-blue-500 border-transparent bg-zinc-800" : "bg-zinc-800 border-zinc-700 hover:border-blue-500 hover:scale-105",
+                          selected
+                            ? "border-cyan-300/70 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(103,232,249,0.22),0_16px_34px_rgba(8,145,178,0.16)]"
+                            : "border-white/10 bg-white/[0.035] hover:border-cyan-300/40 hover:bg-cyan-300/10",
                         )}
                         onClick={() => {
                           setPreset((prev) => ({ ...prev, titleAnimation: { enabled: true, name: anim.name } }));
                           setAdvancedParam({ titleAnimation: anim.name, isGenerateTitleAnimation: "yes" });
                         }}
                       >
-                        {selected && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-blue-500 rounded-full" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-cyan-950 absolute top-1 right-1 rounded-full bg-cyan-300" />}
                         <span className={cn("font-bold text-sm mb-1 animate__animated animate__infinite text-zinc-100", `animate__${anim.name}`)}>Animation</span>
                         <span className="text-[10px] text-zinc-400 leading-tight text-center">{animationLabel(anim.desc)}</span>
                       </div>
@@ -379,8 +473,8 @@ export function CreationExportDialog({
                     className={cn(
                       "relative aspect-[2.5/1] rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden flex items-center justify-center",
                       !preset.subtitle.enabled
-                        ? "ring-2 ring-rose-500 border-transparent bg-rose-950/30 text-rose-400"
-                        : "bg-zinc-800 border-zinc-700 hover:border-rose-500 hover:scale-105 text-zinc-400",
+                        ? "border-rose-300/60 bg-rose-500/10 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.24)]"
+                        : "border-white/10 bg-white/[0.035] text-slate-500 hover:border-rose-300/35 hover:bg-rose-500/10 hover:text-rose-200",
                     )}
                     onClick={() => {
                       setPreset((prev) => ({ ...prev, subtitle: { enabled: false, style: undefined } }));
@@ -388,7 +482,7 @@ export function CreationExportDialog({
                     }}
                   >
                     <Ban className="h-5 w-5" />
-                    {!preset.subtitle.enabled && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-rose-500 rounded-full" />}
+                    {!preset.subtitle.enabled && <CheckCircle className="w-4 h-4 text-rose-100 absolute top-1 right-1 rounded-full bg-rose-500" />}
                   </div>
                   {SUBTITLE_STYLES.map((style) => {
                     let styleObj: Record<string, any> = {};
@@ -401,7 +495,9 @@ export function CreationExportDialog({
                         key={style.value}
                         className={cn(
                           "relative aspect-[2.5/1] rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden group flex items-center justify-center",
-                          selected ? "ring-2 ring-blue-500 border-transparent bg-zinc-800" : "bg-zinc-800 border-zinc-700 hover:border-blue-500 hover:scale-105",
+                          selected
+                            ? "border-cyan-300/70 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(103,232,249,0.22),0_16px_34px_rgba(8,145,178,0.16)]"
+                            : "border-white/10 bg-white/[0.035] hover:border-cyan-300/40 hover:bg-cyan-300/10",
                         )}
                         style={{ backgroundColor: styleObj.backgroundColor || "transparent" }}
                         onClick={() => {
@@ -409,7 +505,7 @@ export function CreationExportDialog({
                           setAdvancedParam({ subtitleStyle: style.value, isGenerateSubtitle: "yes" });
                         }}
                       >
-                        {selected && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 z-20 bg-blue-500 rounded-full" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-cyan-950 absolute top-1 right-1 z-20 rounded-full bg-cyan-300" />}
                         <span
                           style={{
                             fontFamily: styleObj.fontFamily ? String(styleObj.fontFamily).split(".")[0] : "sans-serif",
@@ -441,8 +537,8 @@ export function CreationExportDialog({
                     className={cn(
                       "relative p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 flex items-center justify-center",
                       !preset.subtitleAnimation.enabled
-                        ? "ring-2 ring-rose-500 border-transparent bg-rose-950/30 text-rose-400"
-                        : "bg-zinc-800 border-zinc-700 hover:border-rose-500 hover:scale-105 text-zinc-400",
+                        ? "border-rose-300/60 bg-rose-500/10 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.24)]"
+                        : "border-white/10 bg-white/[0.035] text-slate-500 hover:border-rose-300/35 hover:bg-rose-500/10 hover:text-rose-200",
                     )}
                     onClick={() => {
                       setPreset((prev) => ({ ...prev, subtitleAnimation: { enabled: false, name: undefined } }));
@@ -450,7 +546,7 @@ export function CreationExportDialog({
                     }}
                   >
                     <Ban className="h-5 w-5" />
-                    {!preset.subtitleAnimation.enabled && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-rose-500 rounded-full" />}
+                    {!preset.subtitleAnimation.enabled && <CheckCircle className="w-4 h-4 text-rose-100 absolute top-1 right-1 rounded-full bg-rose-500" />}
                   </div>
                   {ANIMATION_EFFECTS.subtitle.map((anim) => {
                     const selected = preset.subtitleAnimation.enabled && preset.subtitleAnimation.name === anim.name;
@@ -459,14 +555,16 @@ export function CreationExportDialog({
                         key={anim.name}
                         className={cn(
                           "relative p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center overflow-hidden",
-                          selected ? "ring-2 ring-blue-500 border-transparent bg-zinc-800" : "bg-zinc-800 border-zinc-700 hover:border-blue-500 hover:scale-105",
+                          selected
+                            ? "border-cyan-300/70 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(103,232,249,0.22),0_16px_34px_rgba(8,145,178,0.16)]"
+                            : "border-white/10 bg-white/[0.035] hover:border-cyan-300/40 hover:bg-cyan-300/10",
                         )}
                         onClick={() => {
                           setPreset((prev) => ({ ...prev, subtitleAnimation: { enabled: true, name: anim.name } }));
                           setAdvancedParam({ subtitleAnimation: anim.name, isGenerateSubtitleAnimation: "yes" });
                         }}
                       >
-                        {selected && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-blue-500 rounded-full" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-cyan-950 absolute top-1 right-1 rounded-full bg-cyan-300" />}
                         <span className={cn("font-bold text-sm mb-1 animate__animated animate__infinite text-zinc-100", `animate__${anim.name}`)}>Animation</span>
                         <span className="text-[10px] text-zinc-400 leading-tight text-center">{animationLabel(anim.desc)}</span>
                       </div>
@@ -482,8 +580,8 @@ export function CreationExportDialog({
                     className={cn(
                       "relative rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden flex items-center justify-center aspect-video",
                       !preset.effect.enabled
-                        ? "ring-2 ring-rose-500 border-transparent bg-rose-950/30 text-rose-400"
-                        : "bg-zinc-800 border-zinc-700 hover:border-rose-500 hover:scale-105 text-zinc-400",
+                        ? "border-rose-300/60 bg-rose-500/10 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.24)]"
+                        : "border-white/10 bg-white/[0.035] text-slate-500 hover:border-rose-300/35 hover:bg-rose-500/10 hover:text-rose-200",
                     )}
                     onClick={() => {
                       setPreset((prev) => ({ ...prev, effect: { enabled: false, style: undefined } }));
@@ -491,7 +589,7 @@ export function CreationExportDialog({
                     }}
                   >
                     <Ban className="h-5 w-5" />
-                    {!preset.effect.enabled && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-rose-500 rounded-full" />}
+                    {!preset.effect.enabled && <CheckCircle className="w-4 h-4 text-rose-100 absolute top-1 right-1 rounded-full bg-rose-500" />}
                   </div>
                   {EFFECT_STYLES.map((style) => {
                     const selected = preset.effect.enabled && preset.effect.style === style.value;
@@ -500,16 +598,18 @@ export function CreationExportDialog({
                         key={style.value}
                         className={cn(
                           "relative rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden aspect-video",
-                          selected ? "ring-2 ring-blue-500 border-transparent bg-zinc-800" : "bg-zinc-800 border-zinc-700 hover:border-blue-500 hover:scale-105",
+                          selected
+                            ? "border-cyan-300/70 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(103,232,249,0.22),0_16px_34px_rgba(8,145,178,0.16)]"
+                            : "border-white/10 bg-white/[0.035] hover:border-cyan-300/40 hover:bg-cyan-300/10",
                         )}
                         onClick={() => {
                           setPreset((prev) => ({ ...prev, effect: { enabled: true, style: style.value } }));
                           setAdvancedParam({ videoEffectStyle: style.value, isGenerateVideoEffect: "yes" });
                         }}
                       >
-                        {selected && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 z-20 bg-blue-500 rounded-full" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-cyan-950 absolute top-1 right-1 z-20 rounded-full bg-cyan-300" />}
                         <video className="w-full h-full object-cover" src={style.url} muted playsInline loop autoPlay />
-                        <div className="absolute bottom-2 left-2 text-xs font-medium bg-black/60 text-white rounded px-2 py-0.5">{style.description}</div>
+                        <div className="absolute bottom-2 left-2 rounded border border-white/10 bg-black/70 px-2 py-0.5 text-xs font-medium text-cyan-50 backdrop-blur">{style.description}</div>
                       </div>
                     );
                   })}
@@ -523,8 +623,8 @@ export function CreationExportDialog({
                     className={cn(
                       "relative rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden flex items-center justify-center aspect-video",
                       !preset.transition.enabled
-                        ? "ring-2 ring-rose-500 border-transparent bg-rose-950/30 text-rose-400"
-                        : "bg-zinc-800 border-zinc-700 hover:border-rose-500 hover:scale-105 text-zinc-400",
+                        ? "border-rose-300/60 bg-rose-500/10 text-rose-200 shadow-[0_0_0_1px_rgba(244,63,94,0.24)]"
+                        : "border-white/10 bg-white/[0.035] text-slate-500 hover:border-rose-300/35 hover:bg-rose-500/10 hover:text-rose-200",
                     )}
                     onClick={() => {
                       setPreset((prev) => ({ ...prev, transition: { enabled: false, style: undefined } }));
@@ -532,7 +632,7 @@ export function CreationExportDialog({
                     }}
                   >
                     <Ban className="h-5 w-5" />
-                    {!preset.transition.enabled && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 bg-rose-500 rounded-full" />}
+                    {!preset.transition.enabled && <CheckCircle className="w-4 h-4 text-rose-100 absolute top-1 right-1 rounded-full bg-rose-500" />}
                   </div>
                   {TRANSITION_STYLES.map((style) => {
                     const selected = preset.transition.enabled && preset.transition.style === style.value;
@@ -541,40 +641,44 @@ export function CreationExportDialog({
                         key={style.value}
                         className={cn(
                           "relative rounded-lg border-2 cursor-pointer transition-all duration-300 overflow-hidden aspect-video",
-                          selected ? "ring-2 ring-blue-500 border-transparent bg-zinc-800" : "bg-zinc-800 border-zinc-700 hover:border-blue-500 hover:scale-105",
+                          selected
+                            ? "border-cyan-300/70 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(103,232,249,0.22),0_16px_34px_rgba(8,145,178,0.16)]"
+                            : "border-white/10 bg-white/[0.035] hover:border-cyan-300/40 hover:bg-cyan-300/10",
                         )}
                         onClick={() => {
                           setPreset((prev) => ({ ...prev, transition: { enabled: true, style: style.value } }));
                           setAdvancedParam({ transitionStyle: style.value, isGenerateTransition: "yes" });
                         }}
                       >
-                        {selected && <CheckCircle className="w-4 h-4 text-white absolute top-1 right-1 z-20 bg-blue-500 rounded-full" />}
+                        {selected && <CheckCircle className="w-4 h-4 text-cyan-950 absolute top-1 right-1 z-20 rounded-full bg-cyan-300" />}
                         <video className="w-full h-full object-cover" src={style.url} muted playsInline loop autoPlay />
-                        <div className="absolute bottom-2 left-2 text-xs font-medium bg-black/60 text-white rounded px-2 py-0.5">{transitionLabel(style.label)}</div>
+                        <div className="absolute bottom-2 left-2 rounded border border-white/10 bg-black/70 px-2 py-0.5 text-xs font-medium text-cyan-50 backdrop-blur">{transitionLabel(style.label)}</div>
                       </div>
                     );
                   })}
                 </div>
               </div>
             </div>
-            <div className="flex flex-row justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white bg-transparent">
+            <div className="flex flex-row justify-end gap-2 border-t border-white/10 pt-3">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white sm:w-auto">
                 {labels.close}
               </Button>
-              <Button onClick={onStartExport} disabled={isExporting} className="flex items-center gap-2 w-full sm:w-auto bg-white text-black hover:bg-zinc-200 shadow-lg shadow-white/10">
+              <Button onClick={onStartExport} disabled={isExporting} className="flex w-full items-center gap-2 bg-cyan-200 text-slate-950 shadow-[0_14px_34px_rgba(103,232,249,0.22)] hover:bg-cyan-100 sm:w-auto">
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <Download className="w-4 h-4" />}
                 {isExporting ? labels.exporting : labels.startExport}
               </Button>
             </div>
           </div>
 
-          <div className="w-full lg:w-[360px] shrink-0">
-            <div className="lg:sticky lg:top-4 space-y-4">
-              <div className="bg-black ring-1 ring-zinc-800 rounded-xl overflow-hidden aspect-[9/16] flex items-center justify-center">
+          <div className="w-full shrink-0 lg:w-[360px]">
+            <div className="space-y-4 lg:sticky lg:top-0">
+              <div className="flex aspect-[9/16] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_50%_24%,rgba(34,211,238,0.12),transparent_32%),#030405] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]">
                 {showPreviewPlaceholder && (
-                  <div className="flex flex-col items-center justify-center text-white/70">
-                    <Monitor className="h-8 w-8 mb-2 text-white/70" />
-                    <span className="text-xs tracking-widest font-medium">{labels.previewPlaceholder}</span>
+                  <div className="flex flex-col items-center justify-center text-cyan-50/70">
+                    <span className="mb-3 grid size-14 place-items-center rounded-md border border-cyan-200/20 bg-cyan-200/10">
+                      <Monitor className="h-7 w-7 text-cyan-100/80" />
+                    </span>
+                    <span className="text-xs font-medium tracking-widest">{labels.previewPlaceholder}</span>
                   </div>
                 )}
                 {exportState.status === "exporting" && (
@@ -613,7 +717,7 @@ export function CreationExportDialog({
                     variant="outline"
                     size="sm"
                     onClick={() => downloadFile(exportState.videoUrl!)}
-                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white bg-transparent"
+                    className="border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     {labels.download}
