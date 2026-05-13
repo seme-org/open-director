@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
 export async function POST(request: Request) {
+  const requestId = globalThis.crypto?.randomUUID?.() || `agent-chat-${Date.now()}`;
+  const startedAt = Date.now();
   const user = await getCurrentUser();
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
@@ -72,16 +74,31 @@ export async function POST(request: Request) {
     : "director_node";
 
   const collectedParts: unknown[] = [];
+  let writer: SSEWriter | undefined;
+
+  console.log(`[agent-chat:${requestId}] request accepted`, {
+    threadId,
+    startNode,
+    promptLength: prompt.length,
+    confirmDirectorBrief,
+  });
 
   const stream = new ReadableStream({
     async start(controller) {
-      const writer = new SSEWriter(controller);
+      writer = new SSEWriter(controller, { requestId });
+      const onAbort = () => {
+        const elapsedMs = Date.now() - startedAt;
+        console.warn(`[agent-chat:${requestId}] request signal aborted`, { threadId, elapsedMs });
+        writer?.markClosed("request-signal-abort");
+      };
+      request.signal.addEventListener("abort", onAbort, { once: true });
 
       // Wrap write to collect parts for persistence
       const originalWrite = writer.write.bind(writer);
       writer.write = (event: string, data: unknown) => {
-        originalWrite(event, data);
-        if (event === "agent-status" || event === "runner-progress" || event === "done" || event === "error") return;
+        const written = originalWrite(event, data);
+        if (!written) return false;
+        if (event === "agent-status" || event === "runner-progress" || event === "done" || event === "error") return true;
         // Deduplicate recipe and media-assets events: keep only the latest
         if (event === "recipe" || event === "media-assets") {
           for (let i = collectedParts.length - 1; i >= 0; i--) {
@@ -91,6 +108,7 @@ export async function POST(request: Request) {
           }
         }
         collectedParts.push({ type: event, data });
+        return true;
       };
 
       writer.write("agent-status", { node: "init", status: "running" });
@@ -113,14 +131,24 @@ export async function POST(request: Request) {
             recursionLimit: 100,
           },
         );
+        console.log(`[agent-chat:${requestId}] graph completed`, {
+          threadId,
+          elapsedMs: Date.now() - startedAt,
+          collectedParts: collectedParts.length,
+        });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        console.error("[agent-chat] graph error:", message);
+        console.error(`[agent-chat:${requestId}] graph error:`, message, {
+          threadId,
+          elapsedMs: Date.now() - startedAt,
+          writerClosed: writer.isClosed(),
+        });
         try {
           writer.write("error", { message });
           await writer.writeText("error-text", `Error: ${message}`, 0);
         } catch {}
       } finally {
+        request.signal.removeEventListener("abort", onAbort);
         try { await writer.close(); } catch {}
 
         // Persist assistant message
@@ -175,10 +203,24 @@ export async function POST(request: Request) {
               });
             }
           } catch (err) {
-            console.error("[agent-chat] failed to persist assistant message:", err);
+            console.error(`[agent-chat:${requestId}] failed to persist assistant message:`, err);
           }
         }
+        console.log(`[agent-chat:${requestId}] stream finished`, {
+          threadId,
+          elapsedMs: Date.now() - startedAt,
+          writerClosed: writer.isClosed(),
+          collectedParts: collectedParts.length,
+        });
       }
+    },
+    cancel(reason) {
+      console.warn(`[agent-chat:${requestId}] response stream canceled`, {
+        threadId,
+        reason: reason instanceof Error ? reason.message : String(reason),
+        elapsedMs: Date.now() - startedAt,
+      });
+      writer?.markClosed("response-stream-cancel");
     },
   });
 

@@ -108,22 +108,40 @@ export async function callStructuredWithRetry<T>(
 ): Promise<Partial<T>> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const startedAt = Date.now();
+    let chunkCount = 0;
     try {
+      console.log(`[${agentName}] attempt ${attempt}/${MAX_RETRIES} starting`, {
+        messageCount: messages.length,
+      });
       const stream = await llm.stream(messages);
+      console.log(`[${agentName}] attempt ${attempt}/${MAX_RETRIES} stream opened`, {
+        elapsedMs: Date.now() - startedAt,
+      });
       const result = await withTimeout((async () => {
         let partial: Partial<T> | undefined;
         for await (const chunk of stream) {
+          chunkCount += 1;
           partial = { ...partial, ...chunk } as Partial<T>;
           onChunk?.(partial);
         }
         if (!partial) throw new Error("Empty LLM response");
         return partial;
       })(), LLM_TIMEOUT_MS, agentName);
+      console.log(`[${agentName}] attempt ${attempt}/${MAX_RETRIES} completed`, {
+        elapsedMs: Date.now() - startedAt,
+        chunkCount,
+      });
       return result;
     } catch (err) {
       lastError = err;
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[${agentName}] attempt ${attempt}/${MAX_RETRIES} failed:`, msg);
+      console.error(`[${agentName}] attempt ${attempt}/${MAX_RETRIES} failed:`, msg, {
+        elapsedMs: Date.now() - startedAt,
+        chunkCount,
+        writerClosed: writer?.isClosed(),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       if (attempt < MAX_RETRIES) {
         writer?.write("agent-status", { node: agentName, status: "running", retry: attempt + 1 });
         await sleep(1000 * attempt);
