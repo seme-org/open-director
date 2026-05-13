@@ -7,6 +7,7 @@ import {
   blockPlannerNode,
   runnerExecutorNode,
   updateStateNode,
+  researchAgentNode,
   scriptAgentNode,
   artStyleAgentNode,
   storyboardAgentNode,
@@ -35,6 +36,7 @@ const graph = new StateGraph(DirectorState)
   .addNode("update_state", updateStateNode)
 
   // Recipe agent nodes
+  .addNode("research_agent", researchAgentNode)
   .addNode("script_agent", scriptAgentNode)
   .addNode("art_style_agent", artStyleAgentNode)
   .addNode("storyboard_agent", storyboardAgentNode)
@@ -50,7 +52,7 @@ const graph = new StateGraph(DirectorState)
   // decide_start -> conditional routing
   .addConditionalEdges("decide_start", decideStartEdge, {
     director_node: "director_node",
-    recipe_node: "script_agent",
+    recipe_node: "research_agent",
     block_planner: "block_planner",
     runner_executor: "runner_executor",
     update_state: "update_state",
@@ -64,6 +66,7 @@ const graph = new StateGraph(DirectorState)
   .addEdge("director_tools", "update_state")
 
   // Recipe agent pipeline: sequential chain -> block_planner
+  .addEdge("research_agent", "script_agent")
   .addEdge("script_agent", "art_style_agent")
   .addEdge("art_style_agent", "storyboard_agent")
   .addEdge("storyboard_agent", "character_agent")

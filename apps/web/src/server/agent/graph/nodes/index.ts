@@ -4,6 +4,7 @@ export { blockPlannerNode } from "./block-planner";
 export { runnerExecutorNode } from "./runner-executor";
 export { updateStateNode } from "./update-state";
 export {
+  researchAgentNode,
   scriptAgentNode,
   artStyleAgentNode,
   storyboardAgentNode,

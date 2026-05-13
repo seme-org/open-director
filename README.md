@@ -1,6 +1,6 @@
 # OpenDirector
 
-> An open-source AI video studio with an 8-agent director pipeline — from a one-line idea to a fully rendered video with voiceover, BGM, and storyboard.
+> An open-source AI video studio with a 9-agent director pipeline — from a one-line idea to a fully rendered video with voiceover, BGM, and storyboard.
 
 [English](./README.md) | [中文](./README_CN.md)
 
@@ -8,7 +8,7 @@
 
 ## What is OpenDirector?
 
-OpenDirector is a **Docker-first, self-hosted** AI video production studio. Describe your idea in one sentence, and a team of 8 specialized AI agents collaborate to produce a complete video — with a storyboard, character designs, voiceover, background music, and rendered output.
+OpenDirector is a **Docker-first, self-hosted** AI video production studio. Describe your idea in one sentence, and a team of 9 specialized AI agents collaborate to produce a complete video — with optional web research, a storyboard, character designs, voiceover, background music, and rendered output.
 
 Just `docker compose up` and start creating.
 
@@ -24,35 +24,57 @@ Just `docker compose up` and start creating.
 
 ---
 
+## Demo Videos
+
+<table>
+  <tr>
+    <td width="50%">
+      <video src="https://files.seme.cc/demos/1.mp4" controls muted playsinline width="100%"></video>
+      <p><a href="https://files.seme.cc/demos/1.mp4">Open demo 1</a></p>
+    </td>
+    <td width="50%">
+      <video src="https://files.seme.cc/demos/2.mp4" controls muted playsinline width="100%"></video>
+      <p><a href="https://files.seme.cc/demos/2.mp4">Open demo 2</a></p>
+    </td>
+  </tr>
+</table>
+
+GitHub may fall back to links for external MP4 files, so each demo also includes a direct URL.
+
+---
+
 ## How It Works
 
 ```
 Your Idea
    |
    v
-[Script Agent] --> [Art Style Agent] --> [Storyboard Agent]
-   |                                         |
-   v                                         v
-[Character Agent]  [Location Agent]    [Voice Agent]  [BGM Agent]
-   |                  |                   |              |
-   +--------+---------+-------------------+--------------+
-            |
-            v
-     [Media Agent] --> [Render Worker] --> Final Video
+[Research Agent] --> [Script Agent] --> [Art Style Agent] --> [Storyboard Agent]
+                                                            |
+                                                            v
+[Character Agent] --> [Location Agent] --> [Voice Agent] --> [BGM Agent]
+                                                            |
+                                                            v
+                                                     [Media Agent]
+                                                            |
+                                                            v
+                                                  [Render Worker] --> Final Video
 ```
 
-8 specialized agents work in a pipeline:
+9 specialized agents work in a pipeline:
 
-1. **Script Agent** — generates the story outline and narrative structure
-2. **Art Style Agent** — selects from 34 built-in styles (e.g. Futuristic Neon Noir, Dreamscape Watercolor Anime, Documentary Realism)
-3. **Storyboard Agent** — breaks the story into scenes with shot descriptions and dialogue
-4. **Character Agent** — designs characters with visual prompts and assigns voice profiles
-5. **Location Agent** — creates environment concepts for each scene
-6. **Voice Agent** — assigns TTS voices matched to character personality and gender
-7. **BGM Agent** — generates background music based on story atmosphere
-8. **Media Agent** — orchestrates image/voice/music generation into final assets
+1. **Research Agent** — uses OpenAI `web_search_preview` when needed to check known stories, factual references, brands, products, and source notes
+2. **Script Agent** — generates the story outline and narrative structure, using research notes when available
+3. **Art Style Agent** — selects from 34 built-in styles (e.g. Futuristic Neon Noir, Dreamscape Watercolor Anime, Documentary Realism)
+4. **Storyboard Agent** — breaks the story into scenes with shot descriptions and dialogue
+5. **Character Agent** — designs characters with visual prompts and assigns voice profiles
+6. **Location Agent** — creates environment concepts for each scene
+7. **Voice Agent** — assigns TTS voices matched to character personality and gender
+8. **BGM Agent** — generates background music based on story atmosphere
+9. **Media Agent** — orchestrates image/voice/music generation into final assets
 
 Each agent is a LangGraph node that streams its output in real-time — you can watch the plan build step by step.
+The shared graph state now includes a `research` field with notes, cautions, and sources. The Script Agent consumes those notes without copying source text.
 
 ---
 
@@ -61,6 +83,7 @@ Each agent is a LangGraph node that streams its output in real-time — you can 
 ### Creative Mode (AI Director Full Workflow)
 
 - Input one sentence, AI director auto-generates complete plan: brief, story, storyboard, voiceover, images, BGM
+- Optional web research for known stories, factual references, brands, products, and public information
 - **34 built-in art styles** across 9 categories: Cinematic, Commercial, Futuristic, Retro, Anime, 3D, Illustration, Realistic, Experimental
 - **AI-generated story scripts**, editable manually
 - **AI voiceover** with multiple voice options, real-time preview
@@ -185,7 +208,11 @@ The LLM is used for recipe generation, script writing, and the AI director. It u
 OPENAI_API_KEY="your-key"
 OPENAI_BASE_URL="https://api.openai.com/v1"
 OPENAI_MODEL="gpt-4o-mini"
+OPENAI_RESEARCH_MODEL="gpt-4.1-mini"
+OPENAI_RESPONSES_BASE_URL="https://api.openai.com/v1"
 ```
+
+The Research Agent uses the OpenAI Responses API with `web_search_preview`. If your regular OpenAI-compatible provider does not support `/responses`, set `OPENAI_RESPONSES_BASE_URL` to a compatible endpoint.
 
 **Supported providers:**
 - OpenAI (direct)
@@ -239,7 +266,7 @@ This starts the Next.js dev server on http://localhost:3000.
 ```
 open-director/
 ├── apps/
-│   ├── web/          # Next.js frontend + API routes + 8 AI agents
+│   ├── web/          # Next.js frontend + API routes + 9 AI agents
 │   └── render/       # BullMQ render worker (FFCreator)
 ├── assets/
 │   └── fonts/        # Subtitle rendering fonts
@@ -254,6 +281,8 @@ open-director/
 ```
 apps/web/src/server/agent/
 ├── media-provider.ts          # Types + factory + orchestrator
+├── schemas/
+│   └── research.ts            # Research notes, cautions, and source schema
 ├── voices.ts                  # TTS voice catalog (loaded from database)
 ├── art-styles.ts              # Art style catalog (loaded from database)
 ├── providers/
@@ -261,7 +290,7 @@ apps/web/src/server/agent/
 │   ├── aihubmix.ts            # AiHubMix implementation
 │   ├── local-bgm.ts           # Local BGM (random track from database)
 │   └── wavespeed.test.ts      # Provider tests
-└── graph/nodes/recipe/        # 8 LangGraph agent nodes
+└── graph/nodes/recipe/        # 9 LangGraph agent nodes
 ```
 
 ### Tech stack
@@ -342,6 +371,8 @@ apps/web/src/server/agent/
 | `OPENAI_API_KEY` | — | OpenAI-compatible API key |
 | `OPENAI_BASE_URL` | — | API base URL |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Model name |
+| `OPENAI_RESEARCH_MODEL` | `OPENAI_MODEL` | Model used by the Research Agent |
+| `OPENAI_RESPONSES_BASE_URL` | `OPENAI_BASE_URL` | Responses API base URL for `web_search_preview` |
 
 ### Batch mode
 

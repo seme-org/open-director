@@ -2,6 +2,7 @@ import { Annotation } from "@langchain/langgraph";
 import type { BaseMessage } from "@langchain/core/messages";
 import type { DirectorRecipe } from "@/server/agent/schemas/recipe";
 import type { RunnerTask } from "@/server/agent/media-provider";
+import { emptyResearchNotes, type ResearchNotes } from "@/server/agent/schemas/research";
 
 export const DirectorState = Annotation.Root({
   messages: Annotation<BaseMessage[]>({
@@ -15,6 +16,11 @@ export const DirectorState = Annotation.Root({
 
   directorBrief: Annotation<Record<string, unknown>>(),
   needsConfirmation: Annotation<boolean>(),
+
+  research: Annotation<ResearchNotes>({
+    reducer: (_prev, next) => next,
+    default: () => emptyResearchNotes,
+  }),
 
   recipe: Annotation<DirectorRecipe>(),
   recipeId: Annotation<string>(),

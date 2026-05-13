@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("./shared", () => ({
   createModel: vi.fn(),
@@ -7,11 +7,18 @@ vi.mock("./shared", () => ({
   sleep: vi.fn(() => Promise.resolve()),
   resolveLanguage: vi.fn(() => undefined),
   languageInstruction: vi.fn(() => ""),
-  callStructuredWithRetry: vi.fn(async (llm: { stream: (msgs: unknown[]) => AsyncIterable<unknown> }, msgs: unknown[]) => {
+  callStructuredWithRetry: vi.fn(async (
+    llm: { stream: (msgs: unknown[]) => AsyncIterable<unknown> },
+    msgs: unknown[],
+    _agentName: string,
+    _writer?: unknown,
+    onChunk?: (partial: Record<string, unknown>) => void,
+  ) => {
     const stream = await llm.stream(msgs);
     let partial: Record<string, unknown> | undefined;
     for await (const chunk of stream) {
       partial = { ...partial, ...(chunk as Record<string, unknown>) };
+      onChunk?.(partial);
     }
     if (!partial) throw new Error("Empty LLM response");
     return partial;
@@ -69,6 +76,7 @@ vi.mock("@/server/db/prisma", () => ({
 }));
 
 import { createModel, sendAgentProgress, resolveLanguage, languageInstruction, callStructuredWithRetry } from "./shared";
+import { buildResearchQuery, parseResearchResponseText, researchAgentNode, shouldResearchForGoal } from "./research-agent";
 import { scriptAgentNode } from "./script-agent";
 import { artStyleAgentNode } from "./art-style-agent";
 import { storyboardAgentNode } from "./storyboard-agent";
@@ -87,10 +95,12 @@ function mockStream(chunks: Record<string, unknown>[]) {
 }
 
 function setupMockLLM(chunks: Record<string, unknown>[]) {
+  const structured = {
+    stream: vi.fn((_: unknown[]) => mockStream(chunks)),
+  };
   const mockLLM = {
-    withStructuredOutput: vi.fn().mockReturnValue({
-      stream: vi.fn(() => mockStream(chunks)),
-    }),
+    withStructuredOutput: vi.fn().mockReturnValue(structured),
+    structured,
   };
   (createModel as ReturnType<typeof vi.fn>).mockReturnValue(mockLLM);
   return mockLLM;
@@ -114,6 +124,78 @@ function mockWriter() {
 describe("recipe agent nodes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  describe("researchAgentNode", () => {
+    it("triggers research for known Chinese stories", () => {
+      expect(shouldResearchForGoal("我想做孔融让梨的故事")).toBe(true);
+      expect(buildResearchQuery("我想做孔融让梨的故事")).toContain("孔融让梨");
+    });
+
+    it("skips research for ordinary fictional ideas", async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await researchAgentNode(makeState({ goal: "Make a cozy cyberpunk cat cafe ad" }));
+
+      expect(result.research).toMatchObject({ shouldResearch: false, notes: [] });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(result.currentStep).toBe("research_agent");
+    });
+
+    it("parses compact research JSON", () => {
+      expect(parseResearchResponseText(
+        JSON.stringify({
+          notes: ["孔融年幼时把大梨让给兄长。"],
+          cautions: ["不同版本细节略有差异。"],
+          sources: [{ title: "孔融让梨", url: "https://example.test/kong-rong" }],
+        }),
+        "孔融让梨 故事",
+      )).toMatchObject({
+        shouldResearch: true,
+        notes: ["孔融年幼时把大梨让给兄长。"],
+        cautions: ["不同版本细节略有差异。"],
+        sources: [{ title: "孔融让梨", url: "https://example.test/kong-rong" }],
+      });
+    });
+
+    it("uses OpenAI web_search_preview when research is needed", async () => {
+      const previousKey = process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_KEY = "test-key";
+      const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => ({
+        ok: true,
+        json: async () => ({
+          output_text: JSON.stringify({
+            notes: ["孔融让梨的核心是年幼的孔融选择小梨，把大梨让给兄长。"],
+            cautions: ["短视频改编应保留礼让寓意。"],
+            sources: [{ title: "孔融让梨", url: "https://example.test/source" }],
+          }),
+        }),
+      }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await researchAgentNode(makeState({ goal: "我想做孔融让梨的故事" }));
+      const fetchCalls = fetchMock.mock.calls as Array<[RequestInfo | URL, RequestInit]>;
+      const body = JSON.parse(fetchCalls[0]![1].body as string);
+
+      expect(body.tools).toEqual([{ type: "web_search_preview" }]);
+      expect(body.tool_choice).toBe("required");
+      expect(body.include).toEqual(["web_search_call.action.sources"]);
+      expect(result.research).toMatchObject({
+        shouldResearch: true,
+        notes: ["孔融让梨的核心是年幼的孔融选择小梨，把大梨让给兄长。"],
+      });
+
+      if (previousKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = previousKey;
+      }
+    });
   });
 
   // --- script_agent ---
@@ -171,6 +253,28 @@ describe("recipe agent nodes", () => {
 
       expect(sendAgentProgress).toHaveBeenCalledWith(writer, "script_agent", "running");
       expect(sendAgentProgress).toHaveBeenCalledWith(writer, "script_agent", "completed");
+    });
+
+    it("passes research notes into the script context", async () => {
+      const output = { title: "孔融让梨", summary: "S", fullStory: "F", highlights: [], agentBriefs: { script_agent: "", art_style_agent: "", storyboard_agent: "", character_agent: "", location_agent: "", voice_agent: "", media_agent: "" }, audience: "k", tone: "w", language: "zh-CN" };
+      const mockLLM = setupMockLLM([output]);
+
+      await scriptAgentNode(makeState({
+        goal: "我想做孔融让梨的故事",
+        research: {
+          shouldResearch: true,
+          query: "孔融让梨 故事",
+          notes: ["孔融年幼时把大梨让给兄长，自己选择小梨。"],
+          cautions: ["保留礼让寓意。"],
+          sources: [],
+        },
+      }));
+
+      const streamCalls = mockLLM.structured.stream.mock.calls as Array<[Array<{ content?: unknown }>]>;
+      const messages = streamCalls[0]![0];
+      const humanMessageText = messages.map((message) => String(message.content ?? "")).join("\n");
+      expect(humanMessageText).toContain("Reference notes from research_agent");
+      expect(humanMessageText).toContain("孔融年幼时把大梨让给兄长");
     });
   });
 

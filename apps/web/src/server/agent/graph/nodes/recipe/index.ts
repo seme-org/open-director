@@ -1,3 +1,4 @@
+export { researchAgentNode } from "./research-agent";
 export { scriptAgentNode } from "./script-agent";
 export { artStyleAgentNode } from "./art-style-agent";
 export { storyboardAgentNode } from "./storyboard-agent";
