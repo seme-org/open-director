@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Github, Sparkles } from "lucide-react";
 import { HomePrompt } from "@/components/home-prompt";
 import { HeaderUserButton } from "@/components/header-user-button";
 import { LanguageDropdown } from "@/components/language-dropdown";
@@ -55,6 +55,16 @@ export async function SiteHeader({ locale = "en" }: { locale?: Locale }) {
 
         <div className="flex items-center gap-2 md:gap-3">
           <LanguageDropdown locale={currentLocale} />
+          <a
+            href="https://github.com/seme-org/open-director"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="OpenDirector on GitHub"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <Github size={16} />
+            <span className="hidden lg:inline">GitHub</span>
+          </a>
           <HeaderUserButton locale={currentLocale} />
           <Link
             href={withLocale(currentLocale, "/chat")}

@@ -59,7 +59,7 @@
     "badge": "OpenDirector Studio",
     "title": "What video do you want to direct?",
     "subtitle": "Enter an idea and the system will create a session and open the planning workspace.",
-    "placeholder": "e.g. I want to make a story about the tortoise and the hare",
+    "placeholder": "Describe a product launch, faceless channel, short drama, lesson, or social campaign...",
     "chatPlaceholder": "Describe the video you want to direct...",
     "aiDirectorRoom": "AI director room",
     "directing": "Directing...",

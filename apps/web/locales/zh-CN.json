@@ -59,7 +59,7 @@
     "badge": "OpenDirector 工作台",
     "title": "想做什么视频？",
     "subtitle": "输入一个想法，系统会创建会话并进入策划工作台。",
-    "placeholder": "例如：我想做小马过河的故事",
+    "placeholder": "描述一个产品发布、无人频道、短剧、课程或社交营销活动...",
     "chatPlaceholder": "描述你想创作的视频...",
     "aiDirectorRoom": "AI 导演室",
     "directing": "创作中...",
