@@ -29,12 +29,10 @@ Just `docker compose up` and start creating.
 <table>
   <tr>
     <td width="50%">
-      <video src="https://files.seme.cc/demos/1.mp4" controls muted playsinline width="100%"></video>
-      <p><a href="https://files.seme.cc/demos/1.mp4">Open demo 1</a></p>
+      <video src="https://github.com/user-attachments/assets/8cdf67d1-f1d3-460e-9c62-43d26c5ab20e" controls muted playsinline width="100%"></video>
     </td>
     <td width="50%">
-      <video src="https://files.seme.cc/demos/2.mp4" controls muted playsinline width="100%"></video>
-      <p><a href="https://files.seme.cc/demos/2.mp4">Open demo 2</a></p>
+      <video src="https://github.com/user-attachments/assets/0ac73afe-116a-4ba0-9f8a-769c55d78b47" controls muted playsinline width="100%"></video>
     </td>
   </tr>
 </table>
