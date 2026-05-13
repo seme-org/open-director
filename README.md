@@ -39,7 +39,9 @@ Just `docker compose up` and start creating.
     <td width="50%">
       <video src="https://github.com/user-attachments/assets/2fb8f97e-e3cc-4ce7-ae4d-7dced1689197" controls muted playsinline width="100%"></video>
     </td>
-    
+    <td width="50%">
+      <video src="https://github.com/user-attachments/assets/d105ca4f-7d82-4375-9f9c-d720acf0c300" controls muted playsinline width="100%"></video>
+    </td>
   </tr>
 </table>
 
