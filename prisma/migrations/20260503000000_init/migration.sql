@@ -407,7 +407,7 @@ VALUES
 
 ('as_1033', 'Cyber Editorial', 'futuristic', 'https://files.seme.cc/styles/style_33.jpg', 'Futuristic magazine-style visuals with cyber fashion energy', 'cyber editorial, futuristic fashion, neon accents, magazine composition, high contrast tech aesthetic', '["cyber","editorial","fashion","future"]', 1),
 
-('as_1034', 'AI Concept Design', 'experimental', 'https://files.seme.cc/styles/style_34.jpg', 'Concept-art style for futuristic products, worlds, and characters', 'AI concept design, futuristic concept art, detailed design language, imaginative object or environment, polished visual exploration', '["concept","design","future","creative"]', 1),
+('as_1034', 'AI Concept Design', 'experimental', 'https://files.seme.cc/styles/style_34.jpg', 'Concept-art style for futuristic products, worlds, and characters', 'AI concept design, futuristic concept art, detailed design language, imaginative object or environment, polished visual exploration', '["concept","design","future","creative"]', 1);
 
 
 -- Seed data: default voices (Edge TTS)
